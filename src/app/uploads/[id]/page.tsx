@@ -51,6 +51,11 @@ async function UploadDetail({ params }: { params: Promise<{ id: string }> }) {
         title={STATUS_LABEL[upload.status]}
         detail={`${upload.originalName}, ${formatCalendarDate(upload.periodStart)} sampai ${formatCalendarDate(upload.periodEnd)}`}
         hash={upload.sha256}
+        action={
+          can(user, "attendance.read")
+            ? { href: `/dashboard?from=${upload.periodStart}&to=${upload.periodEnd}`, label: "Lihat di dasbor" }
+            : undefined
+        }
       />
       <section className="panel">
         <h2 className="font-semibold">Pemeriksaan berkas</h2>

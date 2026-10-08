@@ -14,10 +14,11 @@ const listSelect = {
   createdAt: true,
 } as const;
 
-export async function listUploads(query: ListQuery, db: Db = prisma) {
-  const where: Prisma.UploadWhereInput = query.q
-    ? { originalName: { contains: query.q, mode: "insensitive" } }
-    : {};
+export async function listUploads(query: ListQuery & { status?: UploadStatus }, db: Db = prisma) {
+  const where: Prisma.UploadWhereInput = {
+    ...(query.status ? { status: query.status } : {}),
+    ...(query.q ? { originalName: { contains: query.q, mode: "insensitive" } } : {}),
+  };
   const orderBy = query.sort === "originalName" ? { originalName: query.direction } : { createdAt: query.direction };
   const total = await db.upload.count({ where });
   const page = visiblePage(query.page, query.pageSize, total);

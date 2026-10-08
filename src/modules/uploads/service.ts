@@ -112,7 +112,10 @@ type Prepared = {
   status: UploadStatus;
 };
 
-export async function listUploadPage(actor: AuthUser, query: ListQuery): Promise<ServiceResult<{ items: UploadDto[]; page: number; pageSize: number; total: number }>> {
+export async function listUploadPage(
+  actor: AuthUser,
+  query: ListQuery & { status?: UploadStatus },
+): Promise<ServiceResult<{ items: UploadDto[]; page: number; pageSize: number; total: number }>> {
   if (!can(actor, "upload.read")) return denied();
   const { total, rows, page } = await listUploads(query);
   return {
