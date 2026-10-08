@@ -1,0 +1,79 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: absensi
+      POSTGRES_PASSWORD: absensi
+      POSTGRES_DB: absensi
+    ports:
+      - "5436:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U absensi -d absensi"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  mailhog:
+    image: mailhog/mailhog:v1.0.1
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://absensi_app:absensi_app@postgres:5432/absensi
+      DIRECT_URL: postgresql://absensi:absensi@postgres:5432/absensi
+      STORAGE_DIR: /data/storage
+      AUTH_SECRET: docker-dev-only-change-me-32chars
+      AUTH_URL: http://localhost:3000
+      SEED_PASSWORD: DevPassword123!
+      SMTP_HOST: mailhog
+      SMTP_PORT: "1025"
+      SMTP_FROM: noreply@example.com
+      APP_URL: http://localhost:3000
+    volumes:
+      - storage_data:/data/storage
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/login >/dev/null || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["pnpm", "worker"]
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://absensi_app:absensi_app@postgres:5432/absensi
+      DIRECT_URL: postgresql://absensi:absensi@postgres:5432/absensi
+      STORAGE_DIR: /data/storage
+      AUTH_SECRET: docker-dev-only-change-me-32chars
+      AUTH_URL: http://localhost:3000
+      SEED_PASSWORD: DevPassword123!
+      SMTP_HOST: mailhog
+      SMTP_PORT: "1025"
+      SMTP_FROM: noreply@example.com
+      APP_URL: http://localhost:3000
+    volumes:
+      - storage_data:/data/storage
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+  storage_data:

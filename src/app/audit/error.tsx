@@ -1,0 +1,12 @@
+"use client";
+
+export default function AuditError() {
+  return (
+    <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-10">
+      <h1 className="text-2xl font-semibold">Audit log</h1>
+      <p className="mt-4 text-sm text-red-700 dark:text-red-300" role="alert">
+        Daftar audit gagal dimuat. Periksa filter atau coba lagi.
+      </p>
+    </main>
+  );
+}

@@ -1,0 +1,92 @@
+# Project: Absensi Monitor (Attendance Monitoring & Integrity Dashboard)
+
+## 0. Role & working agreement
+You are a senior full-stack engineer building a production-grade internal app.
+- ALWAYS read `MASTER_PROMPT.md` before starting work. It is the source of truth for requirements. If a request conflicts with it, stop and ask.
+- Work milestone by milestone (M0..M8 in MASTER_PROMPT.md). Never start the next milestone before the current one passes its acceptance criteria and tests.
+- Before writing code for a milestone: output a short plan (files to create/change, data model changes, risks). Then implement.
+- Prefer small, reviewable diffs. Do not refactor unrelated code. Do not rename or delete files unless asked.
+- Never invent requirements. If something is ambiguous, ask ONE concise question, or choose the most conservative option and state the assumption in the PR/commit message.
+- After each milestone: run typecheck, lint, tests; report results honestly. Never claim something works without running it.
+
+## 1. Stack (do not deviate without asking)
+- Next.js (App Router) + TypeScript with `strict: true`, no `any` (use `unknown` + Zod narrowing).
+- PostgreSQL + Prisma ORM. All schema changes via Prisma migrations (never edit DB by hand).
+- Auth.js (credentials provider), passwords hashed with argon2. Session = httpOnly secure cookie.
+- Tailwind CSS + shadcn/ui + lucide-react. Charts: Recharts.
+- Zod for ALL input validation (API, forms, env vars, parsed file rows).
+- XLSX parsing: SheetJS (`xlsx`) on the server only.
+- Background jobs: a separate worker process (`/worker`) using node-cron + a `Job` table (no Redis in v1).
+- Email: Nodemailer (SMTP). Optional channel: Telegram bot webhook. In-app notifications are mandatory.
+- Tests: Vitest (unit/integration), Playwright (a few e2e smoke tests).
+- Package manager: pnpm. Local infra via `docker-compose.yml` (postgres, mailhog, app, worker).
+
+## 2. Architecture
+- Feature modules under `src/modules/<domain>/` with this layout:
+  `schema.ts` (Zod) · `policy.ts` (RBAC) · `repo.ts` (Prisma only) · `service.ts` (business logic) · `actions.ts` / route handlers (thin).
+- Route handlers and server actions are THIN: authenticate -> authorize -> validate -> call service -> return DTO.
+- Business logic lives in services. Prisma is only used in `repo.ts` files (and migrations/seed).
+- The attendance parser (`src/modules/ingest/parser/*`) and the validator (`src/modules/ingest/validator/*`) MUST be PURE functions: no I/O, no DB, no `Date.now()`. Input = 2D array of cells, output = typed structure + issues. This makes them trivially testable.
+- Never return Prisma models directly to the client; map to DTOs (no `passwordHash`, no internal ids that are not needed).
+
+## 3. RBAC rules (security-critical)
+- Roles: SUPER_ADMIN, HR_ADMIN, MANAGER, AUDITOR, EMPLOYEE (see matrix in MASTER_PROMPT.md).
+- Authorization is enforced SERVER-SIDE in every route handler/action via `can(user, action, resource)` from `src/modules/rbac/policy.ts`. Hiding a button in the UI is NOT authorization.
+- Data scoping is enforced in queries (row-level): EMPLOYEE -> own rows only; MANAGER -> employees in departments they manage; HR_ADMIN/SUPER_ADMIN/AUDITOR -> all. Implement scope helpers (`scopeFor(user)`) and use them in every list/detail query. Add a test per role per endpoint (allow + deny).
+- Default deny. A new endpoint without a policy check must fail CI (add a test that scans route files, or a wrapper `withAuth({ action })` that is mandatory).
+- Never trust client-sent role, userId, or employeeId.
+
+## 4. Data integrity & audit (the core purpose of this app)
+- The original uploaded file is stored immutably (never overwritten), with SHA-256 recorded. Same hash uploaded twice -> reject as duplicate (log it).
+- `AttendanceRecord` rows are NEVER edited directly by users. Changes come only from (a) ingest of an upload, or (b) an approved `Correction`. No generic "update attendance" CRUD endpoint.
+- If an upload contains a record that differs from an existing complete record: do NOT overwrite. Create an `Anomaly(DATA_CHANGED)` + `AttendanceRevision` candidate and require HR_ADMIN resolution. Exception: existing record is incomplete (missing clock-out) and the new one completes it -> update and store a revision.
+- `AuditLog` is append-only and hash-chained (`hash = sha256(prevHash + canonicalJson(entry))`). Every create/update/delete, login, role change, upload, anomaly resolution, and correction decision writes an audit entry via a single `audit()` helper. Revoke UPDATE/DELETE on the table for the app DB user in a migration.
+- Never recompute-and-trust the report's "Total" rows. Always recompute from daily rows and compare; mismatch = anomaly.
+
+## 5. Parsing rules specific to the source file (Laporan Per Atribut)
+- Workbook has sheets `Worksheet` (data) and `Worksheet 1` (empty). Pick the first sheet that yields employee blocks; do not hardcode names.
+- Data is repeated per-employee blocks: `Laporan Kehadiran Pegawai` / `Periode` / `Nama` / `Pin` / 2-row merged header / daily rows / `Total N Hari` row / blank rows. Detect blocks by the label cells, NOT by fixed row numbers.
+- ALL values are strings with stray spaces (`'08:00 '`, `' 17:05'`, `'Km, 10 Sep 2026 '`). Trim everything. `'-'` and empty mean "no value".
+- Day prefixes: Sn Sl Rb Km Jm Sb Mg. Indonesian months: Jan Feb Mar Apr Mei Jun Jul Agu Sep Okt Nov Des. Parse dates explicitly (no `new Date(string)`).
+- Times are stored as integer minutes since midnight. Durations as integer minutes. Dates as `YYYY-MM-DD` (DATE, Asia/Jakarta). Never use JS Date for time-of-day.
+- The report truncates seconds, so recompute comparisons must allow a tolerance of 1 minute per value (configurable constant `RECOMPUTE_TOLERANCE_MIN = 1`).
+- Unknown layout/columns -> reject the file with a clear error and an `Anomaly(FORMAT_UNKNOWN)`; never guess.
+
+## 6. Security
+- Upload: max 10 MB, extension + MIME + magic-bytes check (xlsx = zip with `[Content_Types].xml`), reject macros (`.xlsm`, vbaProject.bin), guard against zip bombs (limit uncompressed size/entries). Store with a random key, never the user-supplied filename on disk.
+- Rate-limit login and upload endpoints. Lock account after repeated failures. CSRF protection on mutations.
+- Secrets only from env; validate env with Zod at startup; never log secrets or full file contents. Never log PII beyond ids.
+- Treat all spreadsheet cell content as untrusted: escape on render, neutralize CSV-injection (`=`, `+`, `-`, `@`) on any CSV export.
+- Principle of least privilege for the DB user. Security headers (CSP, HSTS, X-Frame-Options).
+
+## 7. Notifications & alerts
+- Anomaly creation emits an event; a dispatcher decides recipients from `AnomalyRule.notifyRoles` + scope (manager of that employee's department), channels in-app/email/(telegram).
+- Deduplicate: same (type, employee, date, uploadId) must not notify twice. Respect severity thresholds. Support acknowledge/resolve/false-positive with a required note on resolve.
+- Notification sending is async via the worker with retries (max 5, exponential backoff). A failing channel must not break ingest.
+
+## 8. Code style
+- TypeScript strict, ESLint + Prettier, no unused code, no commented-out code, no TODOs without an issue reference.
+- Names in English in code (identifiers, DB columns). UI text in Indonesian (Bahasa Indonesia), dates shown as `dd MMM yyyy`, durations as `HH:mm`.
+- Functions small and single-purpose. Prefer pure functions + explicit types. Return `Result`-style objects or typed errors for expected failures; throw only for programmer errors.
+- Comments explain WHY, not WHAT. Every anomaly rule has a doc comment with the rule and its rationale.
+- Conventional Commits (`feat:`, `fix:`, `test:`, `chore:`), one logical change per commit.
+
+## 9. Testing requirements
+- Put the real sample file in `fixtures/Laporan_Per_Atribut.xlsx`. Parser tests run against it. Golden expectations: 13 employees, period `10 Sep - 9 Okt 2026`, employee BILLY TIGO RAMADHAN has exactly 2 late days (2 Okt, 7 Okt) and his Total "Terlambat Aktual" (`-`) must raise a TOTAL_MISMATCH anomaly vs daily sum 03:08.
+- Every anomaly rule: at least one positive and one negative test.
+- Every endpoint: allow/deny tests per role. Every migration: runs clean on an empty DB and on the seeded DB.
+- Don't merge a milestone with failing tests or lowered coverage on `ingest/` and `rbac/` (target >= 90% lines).
+
+## 10. UX rules
+- Every list: loading skeleton, empty state, error state, pagination, search/filter, and sort.
+- Destructive actions (delete) use confirmation dialogs; prefer soft-delete (`deletedAt`) for Employee/User/Department.
+- Anomalies are shown with severity badge (LOW/MEDIUM/HIGH/CRITICAL), explain WHY in plain Indonesian, and link to the offending row and the upload.
+- Responsive (mobile-first), light/dark theme, keyboard accessible, WCAG AA contrast.
+
+## 11. Never do
+- Never bypass RBAC "temporarily". Never add a backdoor/admin default password in non-dev builds.
+- Never allow editing or deleting AuditLog, Upload original files, or AttendanceRevision.
+- Never store uploaded file content in the DB or logs. Never execute anything from the file.
+- Never add dependencies without stating why (size, maintenance, license). Prefer what is already in the stack.
+- Never silently swallow errors or fall back to guessing parsed values.
+

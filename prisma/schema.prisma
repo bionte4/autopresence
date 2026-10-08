@@ -1,0 +1,271 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Role {
+  SUPER_ADMIN
+  HR_ADMIN
+  MANAGER
+  AUDITOR
+  EMPLOYEE
+}
+
+enum Granularity {
+  DAILY
+  WEEKLY
+  MONTHLY
+}
+
+enum UploadStatus {
+  RECEIVED
+  PARSED
+  PARSED_WITH_ANOMALIES
+  REJECTED
+}
+
+enum Severity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum AnomalyStatus {
+  OPEN
+  ACKNOWLEDGED
+  RESOLVED
+  FALSE_POSITIVE
+}
+
+enum CorrectionStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum AnomalyType {
+  ROW_MISMATCH
+  TOTAL_MISMATCH
+  DAYS_MISMATCH
+  DATA_CHANGED
+  DUPLICATE_FILE
+  MISSING_UPLOAD
+  MISSING_PUNCH
+  REPEATED_LATE
+  NO_REASON
+  FORMAT_UNKNOWN
+  GRANULARITY_MISMATCH
+  FILE_METADATA_SUSPICIOUS
+  UNKNOWN_EMPLOYEE
+}
+
+model User {
+  id                   String    @id @default(cuid())
+  email                String    @unique
+  name                 String
+  passwordHash         String
+  role                 Role
+  isActive             Boolean   @default(true)
+  failedLogins         Int       @default(0)
+  lockedUntil          DateTime?
+  employeeId           String?   @unique
+  employee             Employee? @relation(fields: [employeeId], references: [id])
+  managedDepartments   Department[] @relation("DeptManagers")
+  uploads              Upload[]
+  notifications        Notification[]
+  requestedCorrections Correction[]  @relation("CorrectionRequester")
+  reviewedCorrections  Correction[]  @relation("CorrectionReviewer")
+  deletedAt            DateTime?
+  createdAt            DateTime  @default(now())
+}
+
+model Department {
+  id        String     @id @default(cuid())
+  name      String     @unique
+  managers  User[]     @relation("DeptManagers")
+  employees Employee[]
+  deletedAt DateTime?
+}
+
+model WorkSchedule {
+  id               String     @id @default(cuid())
+  name             String
+  startMin         Int
+  endMin           Int
+  lateToleranceMin Int        @default(0)
+  employees        Employee[]
+}
+
+model Employee {
+  id           String              @id @default(cuid())
+  pin          String              @unique
+  name         String
+  departmentId String?
+  department   Department?         @relation(fields: [departmentId], references: [id])
+  scheduleId   String
+  schedule     WorkSchedule        @relation(fields: [scheduleId], references: [id])
+  isActive     Boolean             @default(true)
+  deletedAt    DateTime?
+  user         User?
+  records      AttendanceRecord[]
+  anomalies    Anomaly[]
+}
+
+model Upload {
+  id           String         @id @default(cuid())
+  originalName String
+  storageKey   String         @unique
+  sha256       String         @unique
+  sizeBytes    Int
+  granularity  Granularity
+  periodStart  DateTime       @db.Date
+  periodEnd    DateTime       @db.Date
+  status       UploadStatus
+  fileMeta     Json
+  stats        Json?
+  uploadedById String
+  uploadedBy   User           @relation(fields: [uploadedById], references: [id])
+  createdAt    DateTime       @default(now())
+  anomalies    Anomaly[]
+  records      AttendanceRecord[]
+}
+
+model AttendanceRecord {
+  id              String                @id @default(cuid())
+  employeeId      String
+  employee        Employee              @relation(fields: [employeeId], references: [id])
+  date            DateTime              @db.Date
+  isWorkday       Boolean
+  scheduleInMin   Int?
+  scheduleOutMin  Int?
+  clockInMin      Int?
+  clockOutMin     Int?
+  earlyArrivalMin Int?
+  lateMin         Int?
+  earlyLeaveMin   Int?
+  lateLeaveMin    Int?
+  actualLateMin   Int?
+  effectiveMin    Int?
+  actualMin       Int?
+  locIn           String?
+  locOut          String?
+  note            String?
+  sourceUploadId  String
+  sourceUpload    Upload                @relation(fields: [sourceUploadId], references: [id])
+  revisions       AttendanceRevision[]
+  corrections     Correction[]
+
+  @@unique([employeeId, date])
+  @@index([date])
+}
+
+model AttendanceRevision {
+  id           String           @id @default(cuid())
+  recordId     String
+  record       AttendanceRecord @relation(fields: [recordId], references: [id])
+  before       Json
+  after        Json
+  reason       String
+  uploadId     String?
+  correctionId String?
+  createdAt    DateTime         @default(now())
+}
+
+model Anomaly {
+  id           String        @id @default(cuid())
+  type         AnomalyType
+  severity     Severity
+  status       AnomalyStatus @default(OPEN)
+  uploadId     String?
+  upload       Upload?       @relation(fields: [uploadId], references: [id])
+  employeeId   String?
+  employee     Employee?     @relation(fields: [employeeId], references: [id])
+  date         DateTime?     @db.Date
+  message      String
+  details      Json
+  dedupeKey    String        @unique
+  resolvedById String?
+  resolvedNote String?
+  createdAt    DateTime      @default(now())
+  resolvedAt   DateTime?
+}
+
+model AnomalyRule {
+  type          AnomalyType @id
+  enabled       Boolean     @default(true)
+  severity      Severity
+  threshold     Int?
+  notifyRoles   Role[]
+  notifyManager Boolean     @default(true)
+  channels      String[]
+}
+
+model UploadSchedule {
+  id          String      @id @default(cuid())
+  granularity Granularity
+  cutoffTime  String
+  dayOfWeek   Int?
+  dayOfMonth  Int?
+  enabled     Boolean     @default(true)
+}
+
+model Notification {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id])
+  anomalyId String?
+  title     String
+  body      String
+  channel   String
+  status    String    @default("PENDING")
+  attempts  Int       @default(0)
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId, readAt])
+}
+
+model Correction {
+  id            String           @id @default(cuid())
+  recordId      String
+  record        AttendanceRecord @relation(fields: [recordId], references: [id])
+  requestedById String
+  requestedBy   User             @relation("CorrectionRequester", fields: [requestedById], references: [id])
+  changes       Json
+  reason        String
+  status        CorrectionStatus @default(PENDING)
+  reviewedById  String?
+  reviewedBy    User?            @relation("CorrectionReviewer", fields: [reviewedById], references: [id])
+  reviewNote    String?
+  createdAt     DateTime         @default(now())
+  reviewedAt    DateTime?
+}
+
+model AuditLog {
+  id        BigInt   @id @default(autoincrement())
+  actorId   String?
+  action    String
+  entity    String
+  entityId  String?
+  diff      Json?
+  ip        String?
+  createdAt DateTime @default(now())
+  prevHash  String
+  hash      String
+}
+
+model Job {
+  id        String   @id @default(cuid())
+  type      String
+  payload   Json
+  runAt     DateTime @default(now())
+  attempts  Int      @default(0)
+  status    String   @default("PENDING")
+  lastError String?
+}

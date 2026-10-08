@@ -1,36 +1,54 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Absensi Monitor
 
-## Getting Started
+Aplikasi internal pemantauan kehadiran dan integritas laporan Excel. Milestone saat ini: **M1 — Auth, RBAC, dan audit log**.
 
-First, run the development server:
+## Prasyarat
+
+- Node.js 22+
+- pnpm 9
+- Docker Desktop
+
+## Setup lokal
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
+cp .env.example .env
+docker compose up -d postgres mailhog
+pnpm install
+pnpm db:ensure-role
+pnpm prisma migrate deploy
+pnpm db:seed
 pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Postgres di Docker memakai host port **5436** supaya tidak bentrok dengan Postgres lokal di 5432.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Buka [http://localhost:3000/login](http://localhost:3000/login).
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Aplikasi memakai user database `absensi_app` (bukan superuser). Migrasi membuat role itu dan mencabut `UPDATE`/`DELETE` pada `AuditLog`. `DIRECT_URL` hanya untuk migrasi.
 
-## Learn More
+Akun seed (password dari `SEED_PASSWORD` di `.env`, default `DevPassword123!`):
 
-To learn more about Next.js, take a look at the following resources:
+- `super.admin@local`
+- `hr.admin@local`
+- `manager@local`
+- `auditor@local`
+- `employee@local`
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Lima kali gagal masuk mengunci akun selama 15 menit. Percobaan gagal juga dibatasi 10 kali per 15 menit per email.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Docker penuh (app + worker)
 
-## Deploy on Vercel
+```bash
+docker compose up --build
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Mailhog UI: [http://localhost:8025](http://localhost:8025).
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Perintah
+
+| Perintah | Fungsi |
+|---|---|
+| `pnpm typecheck` | TypeScript |
+| `pnpm lint` | ESLint |
+| `pnpm test` | Vitest |
+| `pnpm worker` | Proses worker (placeholder M0) |
