@@ -1,6 +1,6 @@
 # Absensi Monitor
 
-Aplikasi internal pemantauan kehadiran dan integritas laporan Excel. Milestone saat ini: **M1 — Auth, RBAC, dan audit log**.
+Aplikasi internal pemantauan kehadiran dan integritas laporan Excel. Milestone saat ini: **M2 — Data master**.
 
 ## Prasyarat
 

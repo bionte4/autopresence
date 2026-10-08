@@ -2,18 +2,10 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { connection } from "next/server";
 import { redirect } from "next/navigation";
-import type { Role } from "@prisma/client";
 import { LogoutButton } from "@/app/logout-button";
+import { ROLE_LABEL } from "@/lib/labels";
 import { getCurrentUser } from "@/modules/auth/current-user";
 import { can } from "@/modules/rbac/policy";
-
-const ROLE_LABEL: Record<Role, string> = {
-  SUPER_ADMIN: "Super Admin",
-  HR_ADMIN: "HR Admin",
-  MANAGER: "Manajer",
-  AUDITOR: "Auditor",
-  EMPLOYEE: "Pegawai",
-};
 
 export default function BerandaPage() {
   return (
@@ -45,15 +37,13 @@ async function BerandaContent() {
         </div>
         <LogoutButton />
       </header>
-      {can(user, "audit.read") ? (
-        <Link href="/audit" className="text-sm font-medium underline">
-          Lihat audit log
-        </Link>
-      ) : (
-        <p className="text-sm text-zinc-600 dark:text-zinc-400">
-          Dashboard absensi menyusul pada milestone berikutnya.
-        </p>
-      )}
+      <nav className="flex flex-col gap-2 text-sm">
+        {can(user, "department.manage") ? <Link href="/master/departments" className="underline">Departemen</Link> : null}
+        {can(user, "employee.manage") ? <Link href="/master/employees" className="underline">Pegawai</Link> : null}
+        {can(user, "schedule.manage") ? <Link href="/master/schedules" className="underline">Jadwal kerja</Link> : null}
+        {can(user, "user.manage") ? <Link href="/admin/users" className="underline">Pengguna</Link> : null}
+        {can(user, "audit.read") ? <Link href="/audit" className="underline">Audit log</Link> : null}
+      </nav>
     </main>
   );
 }
