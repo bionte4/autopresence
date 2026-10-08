@@ -7,14 +7,14 @@ export function TrendChart({ data }: { data: Array<{ bucket: string; lateEvents:
     return <p className="text-sm text-ink-2">Tidak ada keterlambatan pada periode ini.</p>;
   }
   return (
-    <div className="h-64 w-full">
-      <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={data}>
-          <CartesianGrid strokeDasharray="3 3" />
-          <XAxis dataKey="bucket" />
-          <YAxis allowDecimals={false} />
+    <div className="h-56 w-full min-w-0">
+      <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+        <BarChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+          <CartesianGrid vertical={false} stroke="var(--line)" />
+          <XAxis dataKey="bucket" tick={{ fontSize: 12 }} stroke="var(--ink-2)" />
+          <YAxis allowDecimals={false} width={32} tick={{ fontSize: 12 }} stroke="var(--ink-2)" />
           <Tooltip />
-          <Bar dataKey="lateEvents" name="Keterlambatan" fill="#27439B" />
+          <Bar dataKey="lateEvents" name="Keterlambatan" fill="var(--primary)" radius={[4, 4, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>
     </div>

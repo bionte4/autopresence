@@ -94,6 +94,16 @@ async function DashboardContent({
   return (
     <MasterFrame title="Dasbor" user={user}>
       <form className="panel flex flex-col gap-3" action="/dashboard">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="text-sm text-ink-2">
+            {formatCalendarDate(data.period.from)} s.d. {formatCalendarDate(data.period.to)}
+          </p>
+          {can(user, "upload.create") ? (
+            <Link href="/uploads" className="text-sm font-semibold text-primary">
+              Unggah laporan
+            </Link>
+          ) : null}
+        </div>
         <div className="grid items-end gap-3 sm:grid-cols-2 lg:grid-cols-6">
         <label className="flex flex-col gap-1 text-xs text-ink-2">
           Dari
@@ -181,7 +191,9 @@ async function DashboardContent({
         {kpis.map(([label, value]) => (
           <div key={label} className="border-b border-r border-line px-4 py-(--row-pad)">
             <dt className="text-xs leading-5 text-ink-2">{label}</dt>
-            <dd className="text-xl font-semibold">{value}</dd>
+            <dd className={`text-xl font-semibold ${label === "Anomali terbuka" && data.kpis.openAnomalies > 0 ? "text-danger" : ""}`}>
+              {value}
+            </dd>
           </div>
         ))}
       </dl>
@@ -196,10 +208,11 @@ async function DashboardContent({
         </section>
       ) : null}
 
+      <div className="grid items-start gap-(--stack) xl:grid-cols-2">
       {data.rows.some((row) => row.lateCount > 0) ? (
-        <section className="panel">
+        <section className="panel min-w-0">
           <h2 className="font-semibold">Peringkat keterlambatan</h2>
-          <ul className="mt-4 flex flex-col gap-3">
+          <ul className="mt-4 flex flex-col gap-4">
             {[...data.rows]
               .filter((row) => row.lateCount > 0)
               .sort((left, right) => right.lateMinutes - left.lateMinutes)
@@ -208,13 +221,14 @@ async function DashboardContent({
                 const max = Math.max(...data.rows.map((item) => item.lateMinutes), 1);
                 const width = Math.max(8, Math.round((row.lateMinutes / max) * 100));
                 return (
-                  <li key={row.employeeId} className="grid items-center gap-3 text-sm sm:grid-cols-[10rem_1fr_auto]">
+                  <li key={row.employeeId} className="grid grid-cols-[minmax(0,1fr)_4.5rem] items-center gap-x-3 gap-y-1.5 text-sm">
                     <span className="truncate font-semibold">{row.name}</span>
-                    <span className="h-2 rounded-full bg-surface-2">
-                      <span className="block h-2 rounded-full bg-primary" style={{ width: `${width}%` }} />
+                    <span className="text-right tabular-nums">
+                      <span className="block font-semibold">{row.lateCount} kali</span>
+                      <span className="text-xs text-ink-2">{formatMinutes(row.lateMinutes)}</span>
                     </span>
-                    <span className="text-ink-2">
-                      {row.lateCount} kali, {formatMinutes(row.lateMinutes)}
+                    <span className="col-span-2 h-1.5 rounded-full bg-surface-2">
+                      <span className="block h-1.5 rounded-full bg-primary" style={{ width: `${width}%` }} />
                     </span>
                   </li>
                 );
@@ -223,40 +237,49 @@ async function DashboardContent({
         </section>
       ) : null}
 
-      <section className="flex flex-col gap-3">
+      <section className="panel flex min-w-0 flex-col gap-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-lg font-semibold">Tren keterlambatan</h2>
-          <div className="flex gap-3 text-sm">
-            <Link href={dashboardHref(state, { grain: "week", page: 1 })} className="underline">
-              Mingguan{query.grain === "week" ? " ·" : ""}
+          <h2 className="font-semibold">Tren keterlambatan</h2>
+          <div className="flex rounded-lg border border-line p-0.5 text-sm">
+            <Link
+              href={dashboardHref(state, { grain: "week", page: 1 })}
+              className={`rounded-md px-2 py-1 ${query.grain === "week" ? "bg-primary-soft font-semibold text-primary" : "text-ink-2"}`}
+              aria-current={query.grain === "week" ? "true" : undefined}
+            >
+              Mingguan
             </Link>
-            <Link href={dashboardHref(state, { grain: "month", page: 1 })} className="underline">
-              Bulanan{query.grain === "month" ? " ·" : ""}
+            <Link
+              href={dashboardHref(state, { grain: "month", page: 1 })}
+              className={`rounded-md px-2 py-1 ${query.grain === "month" ? "bg-primary-soft font-semibold text-primary" : "text-ink-2"}`}
+              aria-current={query.grain === "month" ? "true" : undefined}
+            >
+              Bulanan
             </Link>
           </div>
         </div>
         <TrendChart data={data.trend} />
         <details className="text-sm">
-          <summary className="cursor-pointer font-semibold">Lihat sebagai tabel</summary>
+          <summary className="cursor-pointer font-semibold text-ink-2">Lihat sebagai tabel</summary>
           <table className="mt-2 w-full text-left">
             <caption className="sr-only">Tren keterlambatan</caption>
             <thead>
               <tr className="border-b border-line">
-                <th scope="col" className="py-(--row-pad)">Periode</th>
-                <th scope="col" className="py-(--row-pad)">Kejadian</th>
+                <th scope="col" className="py-2">Periode</th>
+                <th scope="col" className="py-2">Kejadian</th>
               </tr>
             </thead>
             <tbody>
               {data.trend.map((point) => (
                 <tr key={point.bucket} className="border-b border-line">
-                  <td className="py-(--row-pad)">{point.bucket}</td>
-                  <td className="py-(--row-pad)">{point.lateEvents}</td>
+                  <td className="py-2">{point.bucket}</td>
+                  <td className="py-2">{point.lateEvents}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </details>
       </section>
+      </div>
 
       {data.heatmap ? (
         <section className="flex flex-col gap-3">
@@ -280,26 +303,26 @@ async function DashboardContent({
           <table className="w-full text-left text-sm">
             <thead>
               <tr className="border-b border-line">
-                <th className="py-(--row-pad) pr-3 font-medium">Nama</th>
-                <th className="py-(--row-pad) pr-3 font-medium">Telat</th>
-                <th className="py-(--row-pad) pr-3 font-medium">Total</th>
-                <th className="py-(--row-pad) pr-3 font-medium">Kurang presensi</th>
-                <th className="py-(--row-pad) font-medium">Tanpa keterangan</th>
+                <th className="px-4 py-(--row-pad) font-medium">Nama</th>
+                <th className="px-4 py-(--row-pad) font-medium">Telat</th>
+                <th className="px-4 py-(--row-pad) font-medium">Total</th>
+                <th className="px-4 py-(--row-pad) font-medium">Kurang presensi</th>
+                <th className="px-4 py-(--row-pad) font-medium">Tanpa keterangan</th>
               </tr>
             </thead>
             <tbody>
               {data.rows.map((row) => (
                 <tr key={row.employeeId} className="border-b border-line">
-                  <td className="py-(--row-pad) pr-3">
-                    <Link href={`/dashboard/pegawai/${row.employeeId}?from=${data.period.from}&to=${data.period.to}`} className="underline">
+                  <td className="px-4 py-(--row-pad)">
+                    <Link href={`/dashboard/pegawai/${row.employeeId}?from=${data.period.from}&to=${data.period.to}`} className="font-semibold">
                       {row.name}
                     </Link>
                     <span className="block text-xs text-ink-2">{row.departmentName ?? "Tanpa departemen"}</span>
                   </td>
-                  <td className="py-(--row-pad) pr-3">{row.lateCount}</td>
-                  <td className="py-(--row-pad) pr-3">{formatMinutes(row.lateMinutes)}</td>
-                  <td className="py-(--row-pad) pr-3">{row.missingPunch}</td>
-                  <td className="py-(--row-pad)">{row.noReason}</td>
+                  <td className="px-4 py-(--row-pad) tabular-nums">{row.lateCount}</td>
+                  <td className="px-4 py-(--row-pad) tabular-nums">{formatMinutes(row.lateMinutes)}</td>
+                  <td className="px-4 py-(--row-pad) tabular-nums">{row.missingPunch}</td>
+                  <td className="px-4 py-(--row-pad) tabular-nums">{row.noReason}</td>
                 </tr>
               ))}
             </tbody>
