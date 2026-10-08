@@ -1,6 +1,6 @@
 # Absensi Monitor
 
-Aplikasi internal pemantauan kehadiran dan integritas laporan Excel. Milestone saat ini: **M2 — Data master**.
+Aplikasi internal pemantauan kehadiran dan integritas laporan Excel. Milestone saat ini: **M3 — Parser dan validator**.
 
 ## Prasyarat
 

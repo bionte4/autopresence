@@ -6,6 +6,14 @@ export default defineConfig({
     environment: "node",
     include: ["src/**/*.test.ts", "tests/**/*.test.ts"],
     setupFiles: ["./vitest.setup.ts"],
+    coverage: {
+      provider: "v8",
+      include: ["src/modules/ingest/**/*.ts"],
+      reporter: ["text"],
+      thresholds: {
+        lines: 90,
+      },
+    },
   },
   resolve: {
     alias: {
