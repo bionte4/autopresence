@@ -4,6 +4,7 @@ import { audit } from "@/modules/audit/service";
 import { visiblePage } from "@/modules/master/query";
 import { conflict, denied, invalid, missing, type ServiceResult } from "@/modules/master/result";
 import { can, heldDepartmentIds, reviewsDepartment, scopeFor, type AuthUser } from "@/modules/rbac/policy";
+import { notifyRequester, notifySeatHolder } from "@/modules/notify/review";
 import { chainSteps, openingSeat, seatAfterApproval, type ChainStep } from "@/modules/review/chain";
 import { guardSeat } from "@/modules/review/guard";
 import { insertDecision } from "@/modules/review/repo";
@@ -192,9 +193,18 @@ export async function createCorrection(actor: AuthUser, input: unknown, ip: stri
       { actorId: actor.id, action: "correction.create", entity: "Correction", entityId: row.id, diff: { recordId: body.recordId, changes, reason: body.reason }, ip },
       tx,
     );
-    return row;
+    return { id: row.id, stage: row.stage, holderId: seats.find((seat) => seat.seat === row.stage)?.userId ?? null };
   });
   if (!created) return conflict("Masih ada koreksi yang menunggu untuk baris ini.");
+  await notifySeatHolder({
+    userId: created.holderId,
+    requesterId: actor.id,
+    seat: created.stage,
+    kind: "correction",
+    subjectId: created.id,
+    employeeName: record.employee.name,
+    detail: body.reason,
+  });
   const loaded = await getCorrection(actor, created.id);
   return loaded.ok ? loaded : missing("Koreksi tidak ditemukan.");
 }
@@ -310,6 +320,28 @@ export async function reviewCorrection(
   } catch (error) {
     if (error instanceof AlreadyDecided) return conflict("Koreksi sudah diputuskan.");
     throw error;
+  }
+  if (!finished && nextSeat) {
+    const holder = guard.data.find((seat) => seat.seat === nextSeat);
+    await notifySeatHolder({
+      userId: holder?.userId ?? null,
+      requesterId: existing.requestedById,
+      seat: nextSeat,
+      kind: "correction",
+      subjectId: id,
+      employeeName: existing.record.employee.name,
+      detail: existing.reason,
+    });
+  } else if (finished) {
+    await notifyRequester({
+      userId: existing.requestedById,
+      actorId: actor.id,
+      seat: existing.stage,
+      kind: "correction",
+      subjectId: id,
+      employeeName: existing.record.employee.name,
+      outcome,
+    });
   }
   return getCorrection(actor, id);
 }

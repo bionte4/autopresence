@@ -35,7 +35,7 @@ afterAll(async () => {
 });
 
 describe("upload monitoring", () => {
-  it("flags a missed daily upload once and notifies HR", async () => {
+  it("flags a missed daily upload once without notifying", async () => {
     const hr = await prisma.user.findUniqueOrThrow({ where: { email: "hr.admin@local" } });
     const admin = await prisma.user.findUniqueOrThrow({ where: { email: "super.admin@local" } });
     const hrActor = actor("HR_ADMIN", hr.id);
@@ -52,8 +52,7 @@ describe("upload monitoring", () => {
     await checkDueSchedules(now);
     expect(await prisma.anomaly.count({ where: { dedupeKey: key } })).toBe(1);
     const anomaly = await prisma.anomaly.findUniqueOrThrow({ where: { dedupeKey: key } });
-    const notice = await prisma.notification.findFirst({ where: { anomalyId: anomaly.id, userId: hr.id, channel: "IN_APP" } });
-    expect(notice?.status).toBe("SENT");
+    expect(await prisma.notification.count({ where: { anomalyId: anomaly.id } })).toBe(0);
 
     const before = await monitoringBoard(hrActor, now);
     expect(before.ok).toBe(true);
@@ -84,11 +83,9 @@ describe("upload monitoring", () => {
     await expect(monitoringBoard(actor("EMPLOYEE"), now)).resolves.toMatchObject({ status: 403 });
   });
 
-  it("sends the HR digest once after 07:00 Jakarta", async () => {
+  it("does not send an anomaly digest", async () => {
     const hr = await prisma.user.findUniqueOrThrow({ where: { email: "hr.admin@local" } });
-    expect(await sendDailyDigest(atJakarta("2026-10-08", "06:59"))).toBe(false);
-    expect(await sendDailyDigest(atJakarta("2026-10-08", "07:05"))).toBe(true);
-    expect(await sendDailyDigest(atJakarta("2026-10-08", "08:00"))).toBe(false);
-    expect(await prisma.notification.count({ where: { userId: hr.id, title: "Ringkasan 2026-10-08", channel: "IN_APP" } })).toBe(1);
+    expect(await sendDailyDigest(atJakarta("2026-10-08", "07:05"))).toBe(false);
+    expect(await prisma.notification.count({ where: { userId: hr.id, title: "Ringkasan 2026-10-08", channel: "IN_APP" } })).toBe(0);
   });
 });

@@ -79,7 +79,7 @@ export async function findCorrection(id: string) {
 export async function findRecordScope(id: string) {
   return prisma.attendanceRecord.findUnique({
     where: { id },
-    select: { id: true, employeeId: true, employee: { select: { departmentId: true } } },
+    select: { id: true, employeeId: true, employee: { select: { name: true, departmentId: true } } },
   });
 }
 
@@ -111,5 +111,5 @@ export async function insertCorrection(
   db: Db,
   data: { recordId: string; requestedById: string; changes: Prisma.InputJsonValue; reason: string; stage: ReviewSeat },
 ) {
-  return db.correction.create({ data, select: { id: true, recordId: true, status: true, reason: true } });
+  return db.correction.create({ data, select: { id: true, recordId: true, status: true, reason: true, stage: true } });
 }

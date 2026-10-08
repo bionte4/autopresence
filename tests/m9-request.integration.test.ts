@@ -81,6 +81,7 @@ describe("leave and overtime requests", () => {
     expect(leave.ok).toBe(true);
     if (!leave.ok) return;
     created.requests.push(leave.data.id);
+    expect(await prisma.notification.count({ where: { requestId: leave.data.id, userId: manager.id, channel: "IN_APP", seat: "TEAM_LEADER", title: "Cuti menunggu Team Leader" } })).toBe(1);
     expect(await prisma.attendanceRecord.findUnique({ where: { id: record.id } })).toMatchObject({ note: null });
 
     await expect(reviewRequest(actor(auditor), leave.data.id, "APPROVED", "Bukan wewenang auditor.", null)).resolves.toMatchObject({
@@ -94,9 +95,11 @@ describe("leave and overtime requests", () => {
       null,
     );
     expect(lead.ok).toBe(true);
+    expect(await prisma.notification.count({ where: { requestId: leave.data.id, userId: superUser.id, channel: "IN_APP", seat: "OPERATION_MANAGER" } })).toBe(1);
     expect((await prisma.attendanceRecord.findUniqueOrThrow({ where: { id: record.id } })).note).toBeNull();
     const operations = await reviewRequest(actor(superUser), leave.data.id, "APPROVED", "Operation manager setuju.", null);
     expect(operations.ok).toBe(true);
+    expect(await prisma.notification.count({ where: { requestId: leave.data.id, userId: projectUser.id, channel: "IN_APP", seat: "PROJECT_MANAGER" } })).toBe(1);
     expect((await prisma.attendanceRecord.findUniqueOrThrow({ where: { id: record.id } })).note).toBeNull();
     const approved = await reviewRequest(
       actor(projectUser, [{ departmentId: department.id, seat: "PROJECT_MANAGER" }]),
@@ -108,6 +111,7 @@ describe("leave and overtime requests", () => {
     expect(approved.ok).toBe(true);
     const stored = await prisma.attendanceRecord.findUniqueOrThrow({ where: { id: record.id } });
     expect(stored.note).toBe("Cuti");
+    expect(await prisma.notification.count({ where: { requestId: leave.data.id, userId: hr.id, channel: "IN_APP", title: "Cuti disetujui" } })).toBe(1);
     expect(rowMissingPunch({ note: stored.note, isWorkday: true, clockInMin: null, clockOutMin: null })).toBe(false);
     expect(await prisma.attendanceRevision.count({ where: { recordId: record.id } })).toBe(1);
 
@@ -120,6 +124,16 @@ describe("leave and overtime requests", () => {
     if (!overtime.ok) return;
     created.requests.push(overtime.data.id);
     expect(overtime.data.overtimeMin).toBe(60);
+    expect(await prisma.notification.count({ where: { requestId: overtime.data.id, userId: manager.id, channel: "IN_APP", seat: "TEAM_LEADER" } })).toBe(1);
+    const sick = await createRequest(
+      actor(hr),
+      { employeeId: employee.id, kind: "SICK", startDate: "2026-10-03", endDate: "2026-10-03", reason: "Demam." },
+      null,
+    );
+    expect(sick.ok).toBe(true);
+    if (!sick.ok) return;
+    created.requests.push(sick.data.id);
+    expect(await prisma.notification.count({ where: { requestId: sick.data.id, userId: manager.id, channel: "IN_APP", title: "Sakit menunggu Team Leader" } })).toBe(1);
     expect(await prisma.attendanceRecord.findUnique({ where: { id: record.id } })).toMatchObject({ clockOutMin: null });
   });
 });

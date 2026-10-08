@@ -4,6 +4,7 @@ import { audit } from "@/modules/audit/service";
 import { visiblePage } from "@/modules/master/query";
 import { conflict, denied, invalid, missing, type ServiceResult } from "@/modules/master/result";
 import { can, heldDepartmentIds, reviewsDepartment, scopeFor, type AuthUser } from "@/modules/rbac/policy";
+import { notifyRequester, notifySeatHolder } from "@/modules/notify/review";
 import { chainSteps, openingSeat, seatAfterApproval, type ChainStep } from "@/modules/review/chain";
 import { guardSeat } from "@/modules/review/guard";
 import { insertDecision } from "@/modules/review/repo";
@@ -18,6 +19,12 @@ import {
 } from "./repo";
 import { requestBodySchema, type RequestListQuery } from "./schema";
 import { overtimeMinutes, requestNote } from "./span";
+
+function noticeKind(kind: "LEAVE" | "SICK" | "OVERTIME"): "leave" | "sick" | "overtime" {
+  if (kind === "LEAVE") return "leave";
+  if (kind === "SICK") return "sick";
+  return "overtime";
+}
 
 export type RequestDto = {
   id: string;
@@ -188,9 +195,18 @@ export async function createRequest(actor: AuthUser, input: unknown, ip: string 
         },
         tx,
       );
-      return row;
+      return { row, holderId: seats.find((seat) => seat.seat === row.stage)?.userId ?? null };
     });
-    return { ok: true, data: toDto(created) };
+    await notifySeatHolder({
+      userId: created.holderId,
+      requesterId: actor.id,
+      seat: created.row.stage,
+      kind: noticeKind(created.row.kind),
+      subjectId: created.row.id,
+      employeeName: employee.name,
+      detail: body.reason,
+    });
+    return { ok: true, data: toDto(created.row) };
   } catch (error) {
     if (error instanceof AlreadyDecided) return conflict("Pengajuan yang sama masih menunggu.");
     throw error;
@@ -252,6 +268,29 @@ export async function reviewRequest(
   } catch (error) {
     if (error instanceof AlreadyDecided) return conflict("Pengajuan sudah diputuskan atau masih ada koreksi terbuka.");
     throw error;
+  }
+  const kind = noticeKind(existing.kind);
+  if (!finished && next) {
+    const holder = guard.data.find((seat) => seat.seat === next);
+    await notifySeatHolder({
+      userId: holder?.userId ?? null,
+      requesterId: existing.requestedById,
+      seat: next,
+      kind,
+      subjectId: id,
+      employeeName: existing.employee.name,
+      detail: existing.reason,
+    });
+  } else if (finished) {
+    await notifyRequester({
+      userId: existing.requestedById,
+      actorId: actor.id,
+      seat: existing.stage,
+      kind,
+      subjectId: id,
+      employeeName: existing.employee.name,
+      outcome,
+    });
   }
   return getRequest(actor, id);
 }

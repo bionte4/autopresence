@@ -80,7 +80,7 @@ rm -rf storage && mkdir storage && tar -xzf backups/storage.tgz -C storage
 
 - **Masuk gagal berulang.** Lima kegagalan mengunci akun 15 menit. Jangan membuat kata sandi admin di build produksi; seed hanya membaca `SEED_PASSWORD`.
 - **Upload ditolak.** Cek ukuran (maks. 10 MB), ekstensi `.xlsx`, dan pesan di halaman upload. Hash yang sama mengembalikan berkas duplikat dan tidak menulis ulang file asli.
-- **Anomali tidak terkirim.** Pastikan `pnpm worker` jalan. Kegagalan SMTP menandai kanal email gagal dan tidak membatalkan ingest. Surat uji ada di Mailhog, port 8025.
+- **Lonceng kosong.** Notifikasi untuk koreksi serta pengajuan cuti, sakit, dan lembur, ke pemegang kursi yang sedang giliran. Anomali dan ringkasan harian tidak mengirim notifikasi. Kegagalan SMTP tidak membatalkan keputusan. Surat uji ada di Mailhog, port 8025.
 - **Upload harian belum masuk.** Di `/monitoring`, merah berarti periode jatuh tempo belum diterima. Worker membuat `MISSING_UPLOAD` sekali per periode.
 - **Koreksi jam.** Pegawai atau manajer mengajukan di `/corrections`. Persetujuan berjenjang: Team Leader, Operation Manager, lalu Project Manager pada departemen pegawai. Tahap terakhir menulis `AttendanceRevision` dan tidak menghapus revisi lama. Kursi kosong menghentikan rantai. Lihat `docs/PANDUAN-PENGGUNA.md`.
 - **Header.** Respons menyertakan CSP dan `X-Frame-Options: DENY`. `Strict-Transport-Security` aktif saat `NODE_ENV=production`.

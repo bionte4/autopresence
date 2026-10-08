@@ -8,6 +8,8 @@ export type NotificationDto = {
   title: string;
   body: string;
   anomalyId: string | null;
+  correctionId: string | null;
+  requestId: string | null;
   readAt: string | null;
   createdAt: string;
 };
@@ -31,6 +33,8 @@ export async function listNotificationPage(
         title: row.title,
         body: row.body,
         anomalyId: row.anomalyId,
+        correctionId: row.correctionId,
+        requestId: row.requestId,
         readAt: row.readAt?.toISOString() ?? null,
         createdAt: row.createdAt.toISOString(),
       })),

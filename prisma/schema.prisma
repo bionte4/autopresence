@@ -283,17 +283,24 @@ model Notification {
   id        String    @id @default(cuid())
   userId    String
   user      User      @relation(fields: [userId], references: [id])
-  anomalyId String?
-  title     String
-  body      String
-  channel   String
-  status    String    @default("PENDING")
-  attempts  Int       @default(0)
-  readAt    DateTime?
-  createdAt DateTime  @default(now())
-  anomaly   Anomaly?  @relation(fields: [anomalyId], references: [id], onDelete: SetNull)
+  anomalyId    String?
+  correctionId String?
+  requestId    String?
+  seat         ReviewSeat?
+  title        String
+  body         String
+  channel      String
+  status       String       @default("PENDING")
+  attempts     Int          @default(0)
+  readAt       DateTime?
+  createdAt    DateTime     @default(now())
+  anomaly      Anomaly?     @relation(fields: [anomalyId], references: [id], onDelete: SetNull)
+  correction   Correction?  @relation(fields: [correctionId], references: [id], onDelete: Cascade)
+  request      AttendanceRequest? @relation(fields: [requestId], references: [id], onDelete: Cascade)
 
   @@unique([userId, anomalyId, channel])
+  @@unique([userId, correctionId, seat, channel])
+  @@unique([userId, requestId, seat, channel])
   @@index([userId, readAt])
 }
 
@@ -313,6 +320,7 @@ model Correction {
   reviewNote    String?
   createdAt     DateTime         @default(now())
   reviewedAt    DateTime?
+  notifications Notification[]
 }
 
 model AttendanceRequest {
@@ -335,6 +343,7 @@ model AttendanceRequest {
   reviewNote    String?
   createdAt     DateTime      @default(now())
   reviewedAt    DateTime?
+  notifications Notification[]
 
   @@index([employeeId, startDate])
 }

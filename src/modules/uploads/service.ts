@@ -32,7 +32,6 @@ import {
   deleteUploadData,
   insertAnomaly,
   insertAttendance,
-  insertJob,
   insertRevision,
   insertUpload,
   listAnomalyRules,
@@ -41,7 +40,6 @@ import {
   updateAttendance,
   uploadHasHistory,
 } from "./repo";
-import { safeDispatch } from "@/modules/notify/dispatch";
 import { newStorageKey, readOriginal, removeOriginal, storeOriginal } from "./storage";
 
 const DEFAULT_SEVERITY: Record<AnomalyCode, Severity> = {
@@ -237,7 +235,6 @@ export async function ingestUpload(
         prepared,
       }),
     );
-    await safeDispatch(saved.id);
     return { ok: true, data: saved };
   } catch (error) {
     if (error instanceof UniqueConflict) {
@@ -429,7 +426,6 @@ async function persistUpload(
       ? UploadStatus.PARSED_WITH_ANOMALIES
       : UploadStatus.PARSED;
   const saved = await markUpload(tx, upload.id, { status, stats });
-  await insertJob(tx, upload.id);
   await audit(
     {
       actorId: input.actor.id,
@@ -445,7 +441,6 @@ async function persistUpload(
 }
 
 async function rememberDuplicate(actor: AuthUser, uploadId: string, sha256: string, ip: string | null) {
-  let notify = false;
   await transaction(async (tx) => {
     const rules = await listAnomalyRules(tx);
     const rule = rules.find((item) => item.type === AnomalyType.DUPLICATE_FILE);
@@ -462,15 +457,12 @@ async function rememberDuplicate(actor: AuthUser, uploadId: string, sha256: stri
         details: { sha256 },
         dedupeKey,
       });
-      await insertJob(tx, uploadId);
-      notify = true;
     }
     await audit(
       { actorId: actor.id, action: "upload.duplicate", entity: "Upload", entityId: uploadId, diff: { sha256 }, ip },
       tx,
     );
   });
-  if (notify) await safeDispatch(uploadId);
 }
 
 async function recoverRejected(input: {

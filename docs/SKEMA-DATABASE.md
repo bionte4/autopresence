@@ -111,7 +111,7 @@ Satu baris per jenis. Menyimpan apakah aturan aktif, tingkat keparahan, ambang, 
 
 ### Notification
 
-Pemberitahuan satu pengguna. Unik per `userId` + `anomalyId` + `channel`, jadi kanal yang sama tidak mengirim dobel untuk temuan yang sama. `readAt` kosong berarti belum dibaca. Kegagalan kirim menaikkan `attempts` dan tidak membatalkan unggah.
+Pemberitahuan satu pengguna. Notifikasi baru menunjuk `correctionId` atau `requestId` plus `seat`, supaya satu orang tidak diberitahu dua kali untuk giliran yang sama. `anomalyId` tersisa untuk baris lama. `readAt` kosong berarti belum dibaca. Kegagalan email tidak membatalkan koreksi atau pengajuan.
 
 ### AuditLog
 
@@ -119,7 +119,7 @@ Hanya bertambah. `hash` adalah SHA-256 dari hash sebelumnya ditambah isi kanonis
 
 ### Job
 
-Antrian worker: kirim notifikasi, cek jadwal unggah, ringkasan. `status` dan `attempts` mengatur ulang coba. Tidak ada Redis.
+Antrian worker: cek jadwal unggah. `status` dan `attempts` mengatur ulang coba. Tidak ada Redis. Notifikasi koreksi, cuti, sakit, dan lembur dikirim saat keputusan disimpan, bukan lewat antrian anomali.
 
 ### UploadSchedule
 

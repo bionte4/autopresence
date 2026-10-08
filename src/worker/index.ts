@@ -5,8 +5,8 @@ import { processDueDispatchJobs } from "@/modules/notify/dispatch";
 function main(): void {
   console.log("Absensi Monitor worker started.");
   const dispatch = () => {
-    void processDueDispatchJobs().catch(() => {
-      console.error("Pengiriman anomali gagal dijalankan.");
+      void processDueDispatchJobs().catch(() => {
+      console.error("Penutupan antrean lama gagal.");
     });
   };
   dispatch();

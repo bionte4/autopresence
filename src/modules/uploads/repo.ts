@@ -165,8 +165,3 @@ export async function deleteUploadData(db: Db, uploadId: string) {
   await db.upload.delete({ where: { id: uploadId } });
 }
 
-export async function insertJob(db: Db, uploadId: string) {
-  return db.job.create({
-    data: { type: "anomaly.dispatch", payload: { uploadId }, status: "PENDING" },
-  });
-}

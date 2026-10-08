@@ -91,6 +91,7 @@ describe("attendance corrections", () => {
     const proposed = await createCorrection(managerActor, body, null);
     expect(proposed.ok).toBe(true);
     if (!proposed.ok) return;
+    expect(await prisma.notification.count({ where: { correctionId: proposed.data.id, userId: hr.id, channel: "IN_APP", seat: "TEAM_LEADER" } })).toBe(1);
     await expect(createCorrection(managerActor, body, null)).resolves.toMatchObject({ status: 409 });
     await expect(reviewCorrection(managerActor, proposed.data.id, "APPROVED", "Bukan wewenang.", null)).resolves.toMatchObject({ status: 403 });
 
@@ -99,12 +100,14 @@ describe("attendance corrections", () => {
     if (!lead.ok) return;
     expect(lead.data.status).toBe("PENDING");
     expect(lead.data.stage).toBe("OPERATION_MANAGER");
+    expect(await prisma.notification.count({ where: { correctionId: proposed.data.id, userId: superUser.id, channel: "IN_APP", seat: "OPERATION_MANAGER" } })).toBe(1);
     expect((await prisma.attendanceRecord.findUniqueOrThrow({ where: { id: record.id } })).clockInMin).toBe(613);
 
     const operations = await reviewCorrection(actor(superUser, []), proposed.data.id, "APPROVED", "Operation manager setuju.", null);
     expect(operations.ok).toBe(true);
     if (!operations.ok) return;
     expect(operations.data.stage).toBe("PROJECT_MANAGER");
+    expect(await prisma.notification.count({ where: { correctionId: proposed.data.id, userId: employeeUser.id, channel: "IN_APP", seat: "PROJECT_MANAGER" } })).toBe(1);
     expect((await prisma.attendanceRecord.findUniqueOrThrow({ where: { id: record.id } })).clockInMin).toBe(613);
 
     const approved = await reviewCorrection(projectActor, proposed.data.id, "APPROVED", "Project manager setuju.", null);
@@ -113,6 +116,7 @@ describe("attendance corrections", () => {
     expect(stored.clockInMin).toBe(480);
     expect(stored.lateMin).toBe(0);
     expect(await prisma.attendanceRevision.count({ where: { correctionId: proposed.data.id } })).toBe(1);
+    expect(await prisma.notification.count({ where: { correctionId: proposed.data.id, userId: manager.id, channel: "IN_APP", title: "Koreksi disetujui" } })).toBe(1);
     await expect(reviewCorrection(hrActor, proposed.data.id, "REJECTED", "Sudah selesai.", null)).resolves.toMatchObject({ status: 409 });
 
     const second = await createCorrection(managerActor, { recordId: record.id, note: "Terlambat", reason: "Catatan salah." }, null);
@@ -121,6 +125,7 @@ describe("attendance corrections", () => {
     const rejected = await reviewCorrection(hrActor, second.data.id, "REJECTED", "Tidak cukup bukti.", null);
     expect(rejected.ok).toBe(true);
     expect((await prisma.attendanceRecord.findUniqueOrThrow({ where: { id: record.id } })).note).toBeNull();
+    expect(await prisma.notification.count({ where: { correctionId: second.data.id, userId: manager.id, channel: "IN_APP", title: "Koreksi ditolak" } })).toBe(1);
     expect(await prisma.auditLog.count({ where: { entityId: proposed.data.id, action: "correction.approve" } })).toBe(1);
   });
 });

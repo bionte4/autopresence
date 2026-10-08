@@ -74,9 +74,8 @@ afterAll(async () => {
 });
 
 describe("anomaly alerts", () => {
-  it("notifies HR from the fixture once, and a second reupload adds nothing", async () => {
+  it("does not notify when a report is uploaded or repeated", async () => {
     const admin = await prisma.user.findUniqueOrThrow({ where: { email: "super.admin@local" } });
-    const hr = await prisma.user.findUniqueOrThrow({ where: { email: "hr.admin@local" } });
     const bytes = readFileSync("fixtures/Laporan_Per_Atribut.xlsx");
     const sha256 = createHash("sha256").update(bytes).digest("hex");
     let upload = await prisma.upload.findUnique({ where: { sha256 } });
@@ -90,25 +89,14 @@ describe("anomaly alerts", () => {
       if (!ingested.ok) return;
       upload = await prisma.upload.findUniqueOrThrow({ where: { id: ingested.data.id } });
     }
+    const before = await noteCount(upload.id);
     await dispatchUpload(upload.id);
-    const first = await noteCount(upload.id);
-    const hrNote = await prisma.notification.findFirst({
-      where: { userId: hr.id, channel: "IN_APP", anomaly: { uploadId: upload.id } },
-      include: { anomaly: true },
-    });
-    expect(hrNote?.anomaly).toBeTruthy();
-    if (!hrNote?.anomaly) return;
-    const rule = await prisma.anomalyRule.findUniqueOrThrow({ where: { type: hrNote.anomaly.type } });
-    expect(rule.notifyRoles).toContain("HR_ADMIN");
-    expect(rule.enabled).toBe(true);
-    await dispatchUpload(upload.id);
-    expect(await noteCount(upload.id)).toBe(first);
+    expect(await noteCount(upload.id)).toBe(before);
 
     const uploader = actor("SUPER_ADMIN", { id: admin.id });
     await ingestUpload(uploader, { filename: "Laporan_Per_Atribut.xlsx", mime, bytes, granularity: "MONTHLY", confirm: true }, null);
-    const afterFirstDuplicate = await noteCount(upload.id);
     await ingestUpload(uploader, { filename: "Laporan_Per_Atribut.xlsx", mime, bytes, granularity: "MONTHLY", confirm: true }, null);
-    expect(await noteCount(upload.id)).toBe(afterFirstDuplicate);
+    expect(await noteCount(upload.id)).toBe(before);
   }, 30_000);
 
   it("keeps the upload when SMTP fails and enforces resolve permissions", async () => {
@@ -136,12 +124,7 @@ describe("anomaly alerts", () => {
     if (!ingested.ok) return;
     created.uploads.push(ingested.data.id);
     expect(ingested.data.status).not.toBe("REJECTED");
-    const emails = await prisma.notification.findMany({ where: { channel: "EMAIL", anomaly: { uploadId: ingested.data.id } } });
-    const inApp = await prisma.notification.findMany({ where: { channel: "IN_APP", anomaly: { uploadId: ingested.data.id } } });
-    expect(emails.length).toBeGreaterThan(0);
-    expect(emails.every((row) => row.status === "FAILED")).toBe(true);
-    expect(inApp.length).toBeGreaterThan(0);
-    expect(inApp.every((row) => row.status === "SENT")).toBe(true);
+    expect(await noteCount(ingested.data.id)).toBe(0);
 
     const low = await prisma.anomaly.findFirstOrThrow({ where: { uploadId: ingested.data.id, type: "MISSING_PUNCH", employeeId: employee.id } });
     const critical = await prisma.anomaly.create({

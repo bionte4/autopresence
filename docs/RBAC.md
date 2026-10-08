@@ -39,7 +39,7 @@ Pemegang kursi peninjau juga melihat pengajuan dan koreksi departemen kursinya, 
 | Kelola jadwal unggah | ✔ | ✔ | — | — | — | Auditor boleh membaca lewat daftar unggah |
 | Lihat audit | ✔ | — | — | ✔ | — | |
 | Verifikasi hash-chain | ✔ | — | — | ✔ | — | |
-| Notifikasi sendiri | ✔ | ✔ | ✔ | ✔ | ✔ | Tidak bisa membaca milik orang lain |
+| Notifikasi sendiri | ✔ | ✔ | ✔ | ✔ | ✔ | Giliran koreksi, cuti, sakit, dan lembur. Tidak bisa membaca milik orang lain |
 
 ## Rantai peninjau
 
@@ -75,7 +75,7 @@ Kursi ditunjuk per departemen oleh Super Admin atau HR Admin. Peran login tidak 
 | Koreksi | ✔ | ✔ | putuskan | — | Buat: sesuai tabel izin. Putuskan: rantai peninjau | Satu koreksi terbuka per baris |
 | Pengajuan | ✔ | ✔ | putuskan | — | Buat: sesuai tabel izin. Putuskan: rantai peninjau | Cuti, sakit, atau lembur |
 | Anomali | sistem | ✔ | akui/tutup | — | Baca dan tutup sesuai tabel izin | Dibuat oleh unggah, bukan pengguna |
-| Notifikasi | sistem | ✔ | dibaca | — | Pemilik notifikasi | |
+| Notifikasi | sistem | ✔ | dibaca | — | Pemilik notifikasi | Dibuat saat koreksi, cuti, sakit, atau lembur berganti giliran |
 | Audit log | sistem | ✔ | — | — | Super Admin, Auditor | Tambah saja; tidak bisa diubah atau dihapus |
 | Revisi absensi | sistem | — | — | — | Tidak ada API | Terbentuk dari unggah, koreksi, atau cuti/sakit |
 | Laporan Excel | — | ✔ | — | — | Semua peran, sesuai lingkup | Rekap kehadiran dan timesheet |

@@ -112,4 +112,8 @@ Berkas yang diunduh aman dibuka di Excel: sel yang diawali rumus diberi tanda ku
 
 ## Notifikasi
 
-Lonceng menampilkan pemberitahuan untuk akun Anda, terutama saat ada anomali baru pada lingkup Anda. Membuka daftar menandai yang belum dibaca. Anda tidak bisa membaca notifikasi orang lain.
+Lonceng berbunyi untuk koreksi jam serta pengajuan cuti, sakit, dan lembur. Anomali tidak mengirim notifikasi.
+
+Penerimanya mengikuti rantai peninjau. Saat giliran sebuah kursi, pemegang kursi itu yang diberitahu. Setelah tahap terakhir menyetujui atau ada yang menolak, pengaju yang diberitahu. Kursi yang kosong tidak punya penerima sampai diisi.
+
+Membuka daftar menandai yang belum dibaca. Anda tidak bisa membaca notifikasi orang lain.

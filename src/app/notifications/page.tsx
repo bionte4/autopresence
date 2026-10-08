@@ -55,8 +55,14 @@ async function NotificationsContent({
               <p className={item.readAt ? "text-ink-2" : "font-medium"}>{item.title}</p>
               <p>{item.body}</p>
               <p className="text-xs text-ink-2">{formatDateTime(item.createdAt)}</p>
+              {item.correctionId ? (
+                <Link href={`/corrections/${item.correctionId}`} className="font-semibold text-primary">Buka koreksi</Link>
+              ) : null}
+              {item.requestId ? (
+                <Link href={`/requests/${item.requestId}`} className="font-semibold text-primary">Buka pengajuan</Link>
+              ) : null}
               {item.anomalyId ? (
-                <Link href={`/anomalies/${item.anomalyId}`} className="underline">Buka anomali</Link>
+                <Link href={`/anomalies/${item.anomalyId}`} className="font-semibold text-primary">Buka anomali</Link>
               ) : null}
             </li>
           ))}

@@ -36,4 +36,4 @@ Dasbor tidak menghitung kurang presensi untuk keterangan yang diawali cuti atau 
 | Selesai | Ditutup dengan catatan |
 | Bukan masalah | Ditutup sebagai temuan yang tidak perlu diperbaiki |
 
-Notifikasi untuk temuan yang sama, pegawai yang sama, tanggal yang sama, dan unggahan yang sama tidak dikirim dua kali pada kanal yang sama.
+Temuan tidak mengirim notifikasi. Lonceng dipakai untuk koreksi serta pengajuan cuti, sakit, dan lembur yang sedang ditinjau.

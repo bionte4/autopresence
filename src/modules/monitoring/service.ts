@@ -1,13 +1,9 @@
 import { audit } from "@/modules/audit/service";
 import { denied, type ServiceResult } from "@/modules/master/result";
-import { safeNotifyAnomaly } from "@/modules/notify/dispatch";
-import { insertNotification } from "@/modules/notify/repo";
-import { resolveMailer } from "@/modules/notify/mailer";
-import { getEnv } from "@/lib/env";
 import { can, type AuthUser } from "@/modules/rbac/policy";
 import { isoDate } from "@/modules/uploads/dates";
 import { listEnabledUploadSchedules } from "@/modules/upload-schedules/repo";
-import { closeMissingAnomaly, digestFacts, findDigestJob, insertDigestJob, insertMissingAnomaly, listUploadsOverlapping, markDigestEmail } from "./repo";
+import { closeMissingAnomaly, insertMissingAnomaly, listUploadsOverlapping } from "./repo";
 import { jakartaParts, scheduleSlots, shiftDate, uploadCovers, type PeriodSlot, type ScheduleClock } from "./periods";
 
 export type MonitorRow = {
@@ -94,35 +90,12 @@ export async function checkDueSchedules(now = new Date()): Promise<{ created: nu
       diff: { scheduleId: schedule.id, from: slot.from, to: slot.to },
       ip: null,
     });
-    await safeNotifyAnomaly(row.id);
   }
   return { created };
 }
 
+/** Ringkasan anomali tidak dikirim. Lonceng hanya untuk koreksi dan lembur. */
 export async function sendDailyDigest(now = new Date()): Promise<boolean> {
-  const clock = jakartaParts(now);
-  if (clock.minutes < 7 * 60) return false;
-  if (await findDigestJob(clock.date)) return false;
-  const facts = await digestFacts(shiftDate(clock.date, -35), clock.date, 3);
-  const names = facts.repeated.slice(0, 10).map((item) => `${item.name} (${item.late} kali)`);
-  const body = [
-    `Anomali terbuka: ${facts.openAnomalies}.`,
-    `Upload terlambat: ${facts.missingUploads}.`,
-    names.length > 0 ? `Terlambat berulang: ${names.join(", ")}.` : "Tidak ada pegawai dengan terlambat berulang.",
-  ].join(" ");
-  const title = `Ringkasan ${clock.date}`;
-  for (const user of facts.hr) {
-    await insertNotification({ userId: user.id, anomalyId: null, title, body, channel: "IN_APP", status: "SENT" });
-    const email = await insertNotification({ userId: user.id, anomalyId: null, title, body, channel: "EMAIL", status: "PENDING" });
-    if (email === "created") {
-      try {
-        await resolveMailer().send({ to: user.email, subject: title, text: `${body}\n\n${getEnv().APP_URL}/monitoring` });
-        await markDigestEmail(user.id, title, "SENT");
-      } catch {
-        await markDigestEmail(user.id, title, "FAILED");
-      }
-    }
-  }
-  await insertDigestJob(clock.date);
-  return true;
+  void now;
+  return false;
 }

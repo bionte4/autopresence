@@ -1,4 +1,4 @@
-import { Prisma } from "@prisma/client";
+import { Prisma, type ReviewSeat } from "@prisma/client";
 import { prisma, type Db } from "@/lib/prisma";
 
 export async function findAnomalyForNotify(id: string) {
@@ -42,7 +42,10 @@ export async function listAnomalyRules() {
 export async function insertNotification(
   data: {
     userId: string;
-    anomalyId: string | null;
+    anomalyId?: string | null;
+    correctionId?: string | null;
+    requestId?: string | null;
+    seat?: ReviewSeat | null;
     title: string;
     body: string;
     channel: string;
@@ -102,8 +105,12 @@ export async function markJob(
   return prisma.job.update({ where: { id }, data });
 }
 
+const reviewNotice: Prisma.NotificationWhereInput = {
+  OR: [{ correctionId: { not: null } }, { requestId: { not: null } }],
+};
+
 export async function countInbox(userId: string) {
-  const where = { userId, channel: "IN_APP" };
+  const where = { userId, channel: "IN_APP", ...reviewNotice };
   const [total, unread] = await Promise.all([
     prisma.notification.count({ where }),
     prisma.notification.count({ where: { ...where, readAt: null } }),
@@ -113,11 +120,11 @@ export async function countInbox(userId: string) {
 
 export async function listInbox(userId: string, page: number, pageSize: number) {
   return prisma.notification.findMany({
-    where: { userId, channel: "IN_APP" },
+    where: { userId, channel: "IN_APP", ...reviewNotice },
     orderBy: { createdAt: "desc" },
     skip: (page - 1) * pageSize,
     take: pageSize,
-    select: { id: true, title: true, body: true, anomalyId: true, readAt: true, createdAt: true },
+    select: { id: true, title: true, body: true, anomalyId: true, correctionId: true, requestId: true, readAt: true, createdAt: true },
   });
 }
 
@@ -127,6 +134,7 @@ export async function markInboxRead(userId: string, ids: string[] | undefined, r
       userId,
       channel: "IN_APP",
       readAt: null,
+      ...reviewNotice,
       ...(ids && ids.length > 0 ? { id: { in: ids } } : {}),
     },
     data: { readAt },
