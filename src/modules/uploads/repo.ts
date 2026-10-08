@@ -55,6 +55,16 @@ export async function findEmployeesByPins(pins: string[], db: Db = prisma) {
   });
 }
 
+export async function findDefaultSchedule(db: Db = prisma) {
+  const seeded = await db.workSchedule.findUnique({ where: { id: "seed-schedule-default" }, select: { id: true } });
+  if (seeded) return seeded;
+  return db.workSchedule.findFirst({ orderBy: { name: "asc" }, select: { id: true } });
+}
+
+export async function insertEmployeeFromReport(db: Db, data: { pin: string; name: string; scheduleId: string }) {
+  return db.employee.create({ data, select: { id: true, pin: true, name: true } });
+}
+
 export async function listAnomalyRules(db: Db = prisma) {
   return db.anomalyRule.findMany();
 }

@@ -22,12 +22,12 @@ describe("security pen-check", () => {
     const auth = readFileSync(path.join(process.cwd(), "src/modules/auth/service.ts"), "utf8");
     const upload = readFileSync(path.join(process.cwd(), "src/app/api/uploads/route.ts"), "utf8");
     const seed = readFileSync(path.join(process.cwd(), "prisma/seed.ts"), "utf8");
-    const csv = readFileSync(path.join(process.cwd(), "src/modules/dashboard/csv.ts"), "utf8");
+    const sheet = readFileSync(path.join(process.cwd(), "src/modules/dashboard/sheet.ts"), "utf8");
     expect(auth).toContain("loginRateLimiter");
     expect(upload).toContain("uploadRateLimiter");
     expect(seed).toContain("process.env.SEED_PASSWORD");
     expect(seed).not.toContain("DevPassword123!");
-    expect(csv).toContain("[=+\\-@");
+    expect(sheet).toContain("[=+\\-@");
   });
 
   it("has no route that edits the audit log, a revision, or an original upload", () => {

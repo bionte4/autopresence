@@ -18,7 +18,7 @@ import {
   type HeatCell,
   type TrendPoint,
 } from "./aggregate";
-import { attendanceCsv } from "./csv";
+import { attendanceWorkbook } from "./sheet";
 import {
   countOpenAnomalies,
   findAttendanceInRange,
@@ -266,10 +266,10 @@ export async function getEmployeeDashboard(
   };
 }
 
-export async function exportAttendanceCsv(
+export async function exportAttendanceWorkbook(
   actor: AuthUser,
   query: DashboardQuery,
-): Promise<ServiceResult<{ filename: string; body: string }>> {
+): Promise<ServiceResult<{ filename: string; body: Buffer }>> {
   if (!can(actor, "attendance.read")) return denied();
   const decision = decideScope(actor, query);
   if (!decision.ok) return decision.error;
@@ -283,8 +283,8 @@ export async function exportAttendanceCsv(
   return {
     ok: true,
     data: {
-      filename: `kehadiran-${query.from}-${query.to}.csv`,
-      body: attendanceCsv(sorted),
+      filename: `kehadiran-${query.from}-${query.to}.xlsx`,
+      body: attendanceWorkbook(sorted),
     },
   };
 }

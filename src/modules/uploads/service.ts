@@ -23,7 +23,9 @@ import { readWorkbookMeta } from "./metadata";
 import {
   findAnomalyByKey,
   findAttendance,
+  findDefaultSchedule,
   findEmployeesByPins,
+  insertEmployeeFromReport,
   findUpload,
   findUploadByHash,
   findUploadByKey,
@@ -229,6 +231,37 @@ export async function ingestUpload(
   }
 }
 
+async function registerReportEmployees(
+  tx: Prisma.TransactionClient,
+  employees: Array<{ pin: string; name: string }>,
+  actorId: string,
+  ip: string | null,
+) {
+  const existing = await findEmployeesByPins(
+    employees.map((employee) => employee.pin),
+    tx,
+  );
+  const known = new Set(existing.map((employee) => employee.pin));
+  const missing = employees.filter((employee) => !known.has(employee.pin));
+  if (missing.length === 0) return;
+  const schedule = await findDefaultSchedule(tx);
+  if (!schedule) return;
+  for (const employee of missing) {
+    const created = await insertEmployeeFromReport(tx, { pin: employee.pin, name: employee.name, scheduleId: schedule.id });
+    await audit(
+      {
+        actorId,
+        action: "employee.create",
+        entity: "Employee",
+        entityId: created.id,
+        diff: { pin: created.pin, name: created.name, source: "upload" },
+        ip,
+      },
+      tx,
+    );
+  }
+}
+
 function prepare(bytes: Uint8Array, granularity: Granularity, confirm: boolean): Prepared {
   const meta = readWorkbookMeta(bytes);
   const parsed = parseReport(sheetsFromWorkbook(bytes).map((sheet) => sheet.cells));
@@ -285,6 +318,7 @@ async function persistUpload(
   if (report) {
     const metaIssue = fileMetadataSuspicious(input.prepared.meta);
     if (metaIssue) issues.push(metaIssue);
+    await registerReportEmployees(tx, report.employees, input.actor.id, input.ip);
     const masters = await findEmployeesByPins(report.employees.map((employee) => employee.pin), tx);
     const byPin = new Map(masters.map((employee) => [employee.pin, employee]));
     const rules = await listAnomalyRules(tx);

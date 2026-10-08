@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { read, utils } from "xlsx";
 import { formatMinutes } from "@/lib/format";
 import {
   heatmap,
@@ -8,7 +9,7 @@ import {
   trend,
   type DayRow,
 } from "./aggregate";
-import { attendanceCsv, csvCell } from "./csv";
+import { attendanceWorkbook, sheetText } from "./sheet";
 import { parseDashboardQuery } from "./schema";
 
 function day(date: string, lateMin: number | null, extra: Partial<DayRow> = {}): DayRow {
@@ -59,22 +60,25 @@ describe("dashboard totals", () => {
     expect(cells.find((cell) => cell.date === "2026-10-03")?.lateMinutes).toBe(0);
   });
 
-  it("neutralizes spreadsheet formulas in CSV cells", () => {
-    expect(csvCell("=IMPOR")).toBe("'=IMPOR");
-    const csv = attendanceCsv([
-      {
-        ...billy,
-        employeeId: billy.id,
-        name: "=IMPOR",
-        lateCount: 2,
-        lateMinutes: 223,
-        actualLateMinutes: 188,
-        missingPunch: 1,
-        noReason: 0,
-      },
-    ]);
-    expect(csv).toContain("'=IMPOR");
-    expect(csv).toContain("03:43");
+  it("neutralizes spreadsheet formulas in Excel cells", () => {
+    expect(sheetText("=IMPOR")).toBe("'=IMPOR");
+    const book = read(
+      attendanceWorkbook([
+        {
+          ...billy,
+          employeeId: billy.id,
+          name: "=IMPOR",
+          lateCount: 2,
+          lateMinutes: 223,
+          actualLateMinutes: 188,
+          missingPunch: 1,
+          noReason: 0,
+        },
+      ]),
+    );
+    const rows = utils.sheet_to_json<string[]>(book.Sheets[book.SheetNames[0]], { header: 1 });
+    expect(rows[1]?.[0]).toBe("'=IMPOR");
+    expect(rows[1]?.[4]).toBe("03:43");
   });
 
   it("rejects a period that ends before it starts", () => {

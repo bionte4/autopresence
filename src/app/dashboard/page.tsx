@@ -270,7 +270,7 @@ async function DashboardContent({
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-lg font-semibold">Ringkasan pegawai</h2>
         <a href={exportHref(state)} className="text-sm underline">
-          Unduh CSV
+          Unduh Excel
         </a>
       </div>
       {data.total === 0 ? (

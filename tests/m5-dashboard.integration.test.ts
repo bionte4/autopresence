@@ -1,9 +1,9 @@
 import { rmSync } from "node:fs";
-import { utils, write } from "xlsx";
+import { read, utils, write } from "xlsx";
 import { afterAll, describe, expect, it } from "vitest";
 import { formatMinutes } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
-import { exportAttendanceCsv, getDashboard, getEmployeeDashboard } from "@/modules/dashboard/service";
+import { exportAttendanceWorkbook, getDashboard, getEmployeeDashboard } from "@/modules/dashboard/service";
 import type { AuthUser } from "@/modules/rbac/policy";
 import { ingestUpload } from "@/modules/uploads/service";
 
@@ -164,11 +164,15 @@ describe("dashboard scope", () => {
     expect(detail.data.kpis.lateEvents).toBe(2);
     expect(formatMinutes(detail.data.kpis.lateMinutes)).toBe("03:43");
 
-    const csv = await exportAttendanceCsv(actor("HR_ADMIN"), period);
-    expect(csv.ok).toBe(true);
-    if (!csv.ok) return;
-    expect(csv.data.body).toContain("BILLY TIGO RAMADHAN");
-    expect(csv.data.body).toContain("03:43");
-    expect(csv.data.body).toContain("'=IMPOR");
+    const file = await exportAttendanceWorkbook(actor("HR_ADMIN"), period);
+    expect(file.ok).toBe(true);
+    if (!file.ok) return;
+    expect(file.data.filename.endsWith(".xlsx")).toBe(true);
+    const book = read(file.data.body);
+    const grid = utils.sheet_to_json<string[]>(book.Sheets[book.SheetNames[0]], { header: 1 });
+    const flat = grid.flat().map(String);
+    expect(flat).toContain("BILLY TIGO RAMADHAN");
+    expect(flat).toContain("03:43");
+    expect(flat).toContain("'=IMPOR");
   });
 });

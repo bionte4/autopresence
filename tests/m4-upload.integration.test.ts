@@ -183,6 +183,29 @@ describe("upload pipeline", () => {
     expect(await prisma.attendanceRecord.count({ where: { employeeId: employee.id } })).toBe(0);
   });
 
+  it("registers a report PIN that is not in the employee master yet", async () => {
+    const admin = await prisma.user.findUniqueOrThrow({ where: { email: "super.admin@local" } });
+    const actor: AuthUser = {
+      id: admin.id,
+      email: admin.email,
+      name: admin.name,
+      role: admin.role,
+      employeeId: null,
+      managedDepartmentIds: [],
+    };
+    const pin = `F${Date.now()}`;
+    const bytes = sheet(": 2 Okt - 2 Okt 2026", `: ${pin}`, [day("Km, 2 Okt 2026", "08:00", "17:05")], ["Total 1 Hari", "", "", "", "", "-", "-", "-", "-", "-", "09:05", "09:05"]);
+    const saved = await ingestUpload(actor, { filename: "uji-pin-baru.xlsx", mime, bytes, granularity: "DAILY", confirm: false }, null);
+    expect(saved.ok).toBe(true);
+    if (!saved.ok) return;
+    created.uploads.push(saved.data.id);
+    expect(saved.data.stats?.inserted).toBe(1);
+    const employee = await prisma.employee.findFirst({ where: { pin, deletedAt: null } });
+    expect(employee?.name).toContain("Uji Upload");
+    if (employee) created.employees.push(employee.id);
+    expect(await prisma.anomaly.count({ where: { uploadId: saved.data.id, type: "UNKNOWN_EMPLOYEE" } })).toBe(0);
+  });
+
   it("accepts the real sample workbook bytes as a zip", () => {
     const bytes = readFileSync("fixtures/Laporan_Per_Atribut.xlsx");
     expect(bytes.subarray(0, 2).toString()).toBe("PK");
