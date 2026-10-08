@@ -13,7 +13,11 @@ const reject = withAuth({
   action: "request.review",
   resource: async ({ request }) => {
     const row = await findRequest(requestId(request));
-    return { employeeId: row?.employee.id ?? null, departmentId: row?.employee.departmentId ?? null };
+    return {
+      departmentId: row?.employee.departmentId ?? null,
+      reviewSeat: row?.stage,
+      ownerUserId: row?.requestedById,
+    };
   },
 })(async ({ request, user }) => {
   const body = reviewRequestSchema.parse(await readJson(request));

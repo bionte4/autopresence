@@ -5,10 +5,13 @@ import { dateOnly } from "@/modules/uploads/dates";
 import { createRequest, reviewRequest } from "@/modules/requests/service";
 import type { AuthUser } from "@/modules/rbac/policy";
 
-const created = { employees: [] as string[], uploads: [] as string[], requests: [] as string[] };
+const created = { employees: [] as string[], uploads: [] as string[], requests: [] as string[], departments: [] as string[] };
 
-function actor(user: { id: string; email: string; name: string; role: AuthUser["role"]; employeeId: string | null }): AuthUser {
-  return { ...user, managedDepartmentIds: [] };
+function actor(
+  user: { id: string; email: string; name: string; role: AuthUser["role"]; employeeId: string | null },
+  reviewSeats: AuthUser["reviewSeats"] = [],
+): AuthUser {
+  return { ...user, managedDepartmentIds: [], reviewSeats };
 }
 
 afterAll(async () => {
@@ -20,15 +23,30 @@ afterAll(async () => {
   }
   if (created.uploads.length) await prisma.upload.deleteMany({ where: { id: { in: created.uploads } } });
   if (created.employees.length) await prisma.employee.deleteMany({ where: { id: { in: created.employees } } });
+  if (created.departments.length) await prisma.department.deleteMany({ where: { id: { in: created.departments } } });
 });
 
 describe("leave and overtime requests", () => {
-  it("writes Cuti onto the attendance row only after HR approves", async () => {
-    const hr = await prisma.user.findUniqueOrThrow({ where: { email: "hr.admin@local" } });
-    const auditor = await prisma.user.findUniqueOrThrow({ where: { email: "auditor@local" } });
+  it("writes Cuti onto the attendance row only after the review chain finishes", async () => {
+    const [hr, auditor, manager, superUser, projectUser] = await Promise.all([
+      prisma.user.findUniqueOrThrow({ where: { email: "hr.admin@local" } }),
+      prisma.user.findUniqueOrThrow({ where: { email: "auditor@local" } }),
+      prisma.user.findUniqueOrThrow({ where: { email: "manager@local" } }),
+      prisma.user.findUniqueOrThrow({ where: { email: "super.admin@local" } }),
+      prisma.user.findUniqueOrThrow({ where: { email: "employee@local" } }),
+    ]);
     const stamp = Date.now();
+    const department = await prisma.department.create({ data: { name: `Uji Pengajuan ${stamp}` } });
+    created.departments.push(department.id);
+    await prisma.departmentReviewer.createMany({
+      data: [
+        { departmentId: department.id, seat: "TEAM_LEADER", userId: manager.id },
+        { departmentId: department.id, seat: "OPERATION_MANAGER", userId: superUser.id },
+        { departmentId: department.id, seat: "PROJECT_MANAGER", userId: projectUser.id },
+      ],
+    });
     const employee = await prisma.employee.create({
-      data: { pin: `rq${stamp}`, name: "Pegawai Pengajuan", scheduleId: "seed-schedule-default" },
+      data: { pin: `rq${stamp}`, name: "Pegawai Pengajuan", scheduleId: "seed-schedule-default", departmentId: department.id },
     });
     created.employees.push(employee.id);
     const upload = await prisma.upload.create({
@@ -68,7 +86,25 @@ describe("leave and overtime requests", () => {
     await expect(reviewRequest(actor(auditor), leave.data.id, "APPROVED", "Bukan wewenang auditor.", null)).resolves.toMatchObject({
       status: 403,
     });
-    const approved = await reviewRequest(actor(hr), leave.data.id, "APPROVED", "Disetujui atasan.", null);
+    const lead = await reviewRequest(
+      actor(manager, [{ departmentId: department.id, seat: "TEAM_LEADER" }]),
+      leave.data.id,
+      "APPROVED",
+      "Team leader setuju.",
+      null,
+    );
+    expect(lead.ok).toBe(true);
+    expect((await prisma.attendanceRecord.findUniqueOrThrow({ where: { id: record.id } })).note).toBeNull();
+    const operations = await reviewRequest(actor(superUser), leave.data.id, "APPROVED", "Operation manager setuju.", null);
+    expect(operations.ok).toBe(true);
+    expect((await prisma.attendanceRecord.findUniqueOrThrow({ where: { id: record.id } })).note).toBeNull();
+    const approved = await reviewRequest(
+      actor(projectUser, [{ departmentId: department.id, seat: "PROJECT_MANAGER" }]),
+      leave.data.id,
+      "APPROVED",
+      "Project manager setuju.",
+      null,
+    );
     expect(approved.ok).toBe(true);
     const stored = await prisma.attendanceRecord.findUniqueOrThrow({ where: { id: record.id } });
     expect(stored.note).toBe("Cuti");

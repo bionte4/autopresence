@@ -15,9 +15,9 @@ const ALLOWED: Record<Action, readonly Role[]> = {
   "upload.delete": ["SUPER_ADMIN", "HR_ADMIN"],
   "attendance.read": ["SUPER_ADMIN", "HR_ADMIN", "MANAGER", "AUDITOR", "EMPLOYEE"],
   "correction.create": ["SUPER_ADMIN", "HR_ADMIN", "MANAGER", "EMPLOYEE"],
-  "correction.review": ["SUPER_ADMIN", "HR_ADMIN"],
+  "correction.review": ["SUPER_ADMIN", "HR_ADMIN", "MANAGER", "EMPLOYEE"],
   "request.create": ["SUPER_ADMIN", "HR_ADMIN", "MANAGER", "EMPLOYEE"],
-  "request.review": ["SUPER_ADMIN", "HR_ADMIN", "MANAGER"],
+  "request.review": ["SUPER_ADMIN", "HR_ADMIN", "MANAGER", "EMPLOYEE"],
   "anomaly.read": ["SUPER_ADMIN", "HR_ADMIN", "MANAGER", "AUDITOR"],
   "anomaly.resolve": ["SUPER_ADMIN", "HR_ADMIN", "MANAGER"],
   "rule.manage": ["SUPER_ADMIN", "HR_ADMIN"],
@@ -35,6 +35,7 @@ function user(role: Role): AuthUser {
     role,
     employeeId: role === "EMPLOYEE" ? "emp-1" : null,
     managedDepartmentIds: role === "MANAGER" ? ["dept-1"] : [],
+    reviewSeats: [{ departmentId: "dept-1", seat: "TEAM_LEADER" }],
   };
 }
 
@@ -54,8 +55,8 @@ function resourceFor(action: Action, role: Role): Resource | undefined {
   if (action === "request.create" && role === "EMPLOYEE") {
     return { employeeId: "emp-1" };
   }
-  if (action === "request.review" && role === "MANAGER") {
-    return { departmentId: "dept-1", employeeId: "emp-2" };
+  if (action === "request.review" || action === "correction.review") {
+    return { departmentId: "dept-1", reviewSeat: "TEAM_LEADER", ownerUserId: "requester" };
   }
   if (action === "notification.read") {
     return { ownerUserId: "user-1" };
@@ -116,6 +117,30 @@ describe("scoped denies", () => {
 
   it("denies an employee with no linked record from correcting", () => {
     expect(can({ ...employee, employeeId: null }, "correction.create", { employeeId: "emp-1" })).toBe(
+      false,
+    );
+  });
+
+  it("denies a reviewer approving their own submission", () => {
+    expect(
+      can(employee, "request.review", { departmentId: "dept-1", reviewSeat: "TEAM_LEADER", ownerUserId: employee.id }),
+    ).toBe(false);
+  });
+
+  it("denies a team leader acting as operation manager", () => {
+    expect(
+      can(employee, "correction.review", { departmentId: "dept-1", reviewSeat: "OPERATION_MANAGER", ownerUserId: "requester" }),
+    ).toBe(false);
+  });
+
+  it("denies review outside the assigned department", () => {
+    expect(
+      can(employee, "request.review", { departmentId: "dept-2", reviewSeat: "TEAM_LEADER", ownerUserId: "requester" }),
+    ).toBe(false);
+  });
+
+  it("denies an auditor even when a seat is attached", () => {
+    expect(can(user("AUDITOR"), "correction.review", { departmentId: "dept-1", reviewSeat: "TEAM_LEADER", ownerUserId: "requester" })).toBe(
       false,
     );
   });

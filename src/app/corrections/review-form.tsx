@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-export function ReviewForm({ id }: { id: string }) {
+export function ReviewForm({ id, seatLabel }: { id: string; seatLabel: string }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -34,7 +34,7 @@ export function ReviewForm({ id }: { id: string }) {
       }}
     >
       <label className="flex flex-col gap-1 text-xs text-ink-2">
-        Catatan keputusan
+        Catatan {seatLabel}
         <textarea name="note" required minLength={3} maxLength={500} className="field font-normal" />
       </label>
       {error ? <p role="alert" className="text-sm text-danger">{error}</p> : null}

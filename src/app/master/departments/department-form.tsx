@@ -5,17 +5,33 @@ import { useRouter } from "next/navigation";
 import { saveJson } from "../save";
 
 type ProjectOption = { id: string; name: string; customerName: string };
+type UserOption = { id: string; name: string };
+type Reviewers = {
+  TEAM_LEADER: { userId: string; name: string } | null;
+  OPERATION_MANAGER: { userId: string; name: string } | null;
+  PROJECT_MANAGER: { userId: string; name: string } | null;
+};
+
+const SEATS = [
+  ["TEAM_LEADER", "Team Leader"],
+  ["OPERATION_MANAGER", "Operation Manager"],
+  ["PROJECT_MANAGER", "Project Manager"],
+] as const;
 
 export function DepartmentForm({
   id,
   name,
   projectId,
   projects,
+  users,
+  reviewers,
 }: {
   id?: string;
   name?: string;
   projectId?: string | null;
   projects: ProjectOption[];
+  users?: UserOption[];
+  reviewers?: Reviewers;
 }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
@@ -27,6 +43,15 @@ export function DepartmentForm({
     const message = await saveJson(id ? `/api/departments/${id}` : "/api/departments", id ? "PATCH" : "POST", {
       name: formData.get("name"),
       projectId: formData.get("projectId"),
+      ...(users
+        ? {
+            reviewers: {
+              TEAM_LEADER: formData.get("TEAM_LEADER"),
+              OPERATION_MANAGER: formData.get("OPERATION_MANAGER"),
+              PROJECT_MANAGER: formData.get("PROJECT_MANAGER"),
+            },
+          }
+        : {}),
     });
     setPending(false);
     if (message) {
@@ -68,6 +93,24 @@ export function DepartmentForm({
           ))}
         </select>
       </label>
+      {users ? (
+        <fieldset className="grid gap-3">
+          <legend className="text-xs text-ink-2">Rantai peninjau pengajuan dan koreksi</legend>
+          {SEATS.map(([seat, label]) => (
+            <label key={seat} className="flex flex-col gap-1 text-xs text-ink-2">
+              {label}
+              <select name={seat} defaultValue={reviewers?.[seat]?.userId ?? ""} className="field font-normal">
+                <option value="">Belum ditunjuk</option>
+                {users.map((person) => (
+                  <option key={person.id} value={person.id}>
+                    {person.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ))}
+        </fieldset>
+      ) : null}
       <button type="submit" disabled={pending} className="btn btn-primary self-start disabled:opacity-60">
         {pending ? "Menyimpan..." : "Simpan"}
       </button>

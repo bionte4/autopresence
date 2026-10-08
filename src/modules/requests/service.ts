@@ -1,9 +1,12 @@
-import type { RequestKind, RequestStatus } from "@prisma/client";
+import type { RequestKind, RequestStatus, ReviewSeat } from "@prisma/client";
 import { transaction, type Db } from "@/lib/prisma";
 import { audit } from "@/modules/audit/service";
 import { visiblePage } from "@/modules/master/query";
 import { conflict, denied, invalid, missing, type ServiceResult } from "@/modules/master/result";
-import { can, scopeFor, type AuthUser } from "@/modules/rbac/policy";
+import { can, heldDepartmentIds, reviewsDepartment, scopeFor, type AuthUser } from "@/modules/rbac/policy";
+import { chainSteps, openingSeat, seatAfterApproval, type ChainStep } from "@/modules/review/chain";
+import { guardSeat } from "@/modules/review/guard";
+import { insertDecision } from "@/modules/review/repo";
 import { dateOnly, isoDate } from "@/modules/uploads/dates";
 import {
   findOverlap,
@@ -27,7 +30,11 @@ export type RequestDto = {
   overtimeMin: number | null;
   reason: string;
   status: RequestStatus;
+  stage: ReviewSeat;
+  departmentId: string | null;
+  requestedById: string;
   reviewNote?: string | null;
+  steps?: ChainStep[];
   createdAt: string;
 };
 
@@ -43,9 +50,11 @@ function toDto(row: {
   overtimeMin: number | null;
   reason: string;
   status: RequestStatus;
+  stage: ReviewSeat;
+  requestedById: string;
   reviewNote?: string | null;
   createdAt: Date;
-  employee: { id: string; name: string };
+  employee: { id: string; name: string; departmentId?: string | null };
 }): RequestDto {
   return {
     id: row.id,
@@ -58,6 +67,9 @@ function toDto(row: {
     overtimeMin: row.overtimeMin,
     reason: row.reason,
     status: row.status,
+    stage: row.stage,
+    departmentId: row.employee.departmentId ?? null,
+    requestedById: row.requestedById,
     reviewNote: row.reviewNote,
     createdAt: row.createdAt.toISOString(),
   };
@@ -71,8 +83,15 @@ export function canProposeRequest(actor: AuthUser): boolean {
   return can(actor, "request.create");
 }
 
-export function canReviewRequest(actor: AuthUser, employeeId: string, departmentId: string | null): boolean {
-  return can(actor, "request.review", { employeeId, departmentId });
+export function canReviewRequest(
+  actor: AuthUser,
+  input: { departmentId: string | null; stage: ReviewSeat; requesterId: string },
+): boolean {
+  return can(actor, "request.review", {
+    departmentId: input.departmentId,
+    reviewSeat: input.stage,
+    ownerUserId: input.requesterId,
+  });
 }
 
 export async function listRequestPage(actor: AuthUser, query: RequestListQuery): Promise<
@@ -86,7 +105,7 @@ export async function listRequestPage(actor: AuthUser, query: RequestListQuery):
 > {
   if (!can(actor, "attendance.read")) return denied();
   const scope = scopeFor(actor);
-  const { total, rows } = await listRequests(scope, query);
+  const { total, rows } = await listRequests(scope, query, heldDepartmentIds(actor));
   const page = visiblePage(query.page, query.pageSize, total);
   const employees = canProposeRequest(actor) ? await listRequestEmployees(scope) : [];
   return {
@@ -105,12 +124,28 @@ export async function getRequest(actor: AuthUser, id: string): Promise<ServiceRe
   if (!can(actor, "attendance.read")) return denied();
   const row = await findRequest(id);
   if (!row || !visible(actor, row.employee.id, row.employee.departmentId)) return missing("Pengajuan tidak ditemukan.");
-  return { ok: true, data: toDto(row) };
+  return {
+    ok: true,
+    data: {
+      ...toDto(row),
+      steps: chainSteps({
+        status: row.status,
+        stage: row.stage,
+        decisions: row.decisions.map((decision) => ({
+          seat: decision.seat,
+          outcome: decision.outcome,
+          reviewerName: decision.reviewer.name,
+          note: decision.note,
+        })),
+      }),
+    },
+  };
 }
 
 function visible(actor: AuthUser, employeeId: string, departmentId: string | null): boolean {
   const scope = scopeFor(actor);
   if (scope.kind === "all") return true;
+  if (reviewsDepartment(actor, departmentId)) return true;
   if (scope.kind === "self") return scope.employeeId === employeeId;
   return departmentId !== null && scope.departmentIds.includes(departmentId);
 }
@@ -127,6 +162,7 @@ export async function createRequest(actor: AuthUser, input: unknown, ip: string 
   try {
     const created = await transaction(async (tx) => {
       if (await findOverlap(tx, employee.id, start, end)) throw new AlreadyDecided();
+      const seats = employee.departmentId ? await tx.departmentReviewer.findMany({ where: { departmentId: employee.departmentId }, select: { seat: true, userId: true } }) : [];
       const row = await tx.attendanceRequest.create({
         data: {
           employeeId: employee.id,
@@ -137,8 +173,9 @@ export async function createRequest(actor: AuthUser, input: unknown, ip: string 
           overtimeMin: minutes,
           reason: body.reason,
           requestedById: actor.id,
+          stage: openingSeat(actor.id, seats),
         },
-        include: { employee: { select: { id: true, name: true } } },
+        include: { employee: { select: { id: true, name: true, departmentId: true } } },
       });
       await audit(
         {
@@ -169,25 +206,44 @@ export async function reviewRequest(
 ): Promise<ServiceResult<RequestDto>> {
   const existing = await findRequest(id);
   if (!existing || !visible(actor, existing.employee.id, existing.employee.departmentId)) return missing("Pengajuan tidak ditemukan.");
-  if (!canReviewRequest(actor, existing.employee.id, existing.employee.departmentId)) return denied();
   if (existing.status !== "PENDING") return conflict("Pengajuan sudah diputuskan.");
+  const guard = await guardSeat(actor, "request.review", {
+    departmentId: existing.employee.departmentId,
+    stage: existing.stage,
+    requesterId: existing.requestedById,
+  });
+  if (!guard.ok) return guard;
+  const next = outcome === "APPROVED" ? seatAfterApproval(existing.stage, existing.requestedById, guard.data) : null;
+  const finished = outcome === "REJECTED" || next === null;
   try {
     await transaction(async (tx) => {
       const claimed = await tx.attendanceRequest.updateMany({
-        where: { id, status: "PENDING" },
-        data: { status: outcome, reviewedById: actor.id, reviewNote: note, reviewedAt: new Date() },
+        where: { id, status: "PENDING", stage: existing.stage },
+        data: {
+          ...(finished ? { status: outcome } : { stage: next ?? existing.stage }),
+          reviewedById: actor.id,
+          reviewNote: note,
+          reviewedAt: new Date(),
+        },
       });
       if (claimed.count !== 1) throw new AlreadyDecided();
-      if (outcome === "APPROVED" && (existing.kind === "LEAVE" || existing.kind === "SICK")) {
+      await insertDecision(tx, {
+        seat: existing.stage,
+        outcome,
+        note,
+        reviewerId: actor.id,
+        requestId: id,
+      });
+      if (finished && outcome === "APPROVED" && (existing.kind === "LEAVE" || existing.kind === "SICK")) {
         await applyAbsenceNote(tx, existing.employee.id, existing.startDate, existing.endDate, requestNote(existing.kind), existing.reason);
       }
       await audit(
         {
           actorId: actor.id,
-          action: outcome === "APPROVED" ? "request.approve" : "request.reject",
+          action: finished ? (outcome === "APPROVED" ? "request.approve" : "request.reject") : "request.advance",
           entity: "AttendanceRequest",
           entityId: id,
-          diff: { outcome, note },
+          diff: { seat: existing.stage, outcome, note },
           ip,
         },
         tx,

@@ -17,6 +17,9 @@ const authSelect = {
     where: { deletedAt: null },
     select: { id: true },
   },
+  departmentSeats: {
+    select: { departmentId: true, seat: true },
+  },
 } as const;
 
 type AuthRecord = Prisma.UserGetPayload<{ select: typeof authSelect }>;
@@ -29,6 +32,7 @@ function toAuthUser(user: AuthRecord): AuthUser {
     role: user.role,
     employeeId: user.employeeId,
     managedDepartmentIds: user.managedDepartments.map((department) => department.id),
+    reviewSeats: user.departmentSeats.map((seat) => ({ departmentId: seat.departmentId, seat: seat.seat })),
   };
 }
 

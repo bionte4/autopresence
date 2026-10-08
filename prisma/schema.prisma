@@ -61,6 +61,17 @@ enum RequestStatus {
   REJECTED
 }
 
+enum ReviewSeat {
+  TEAM_LEADER
+  OPERATION_MANAGER
+  PROJECT_MANAGER
+}
+
+enum ReviewOutcome {
+  APPROVED
+  REJECTED
+}
+
 enum AnomalyType {
   ROW_MISMATCH
   TOTAL_MISMATCH
@@ -96,6 +107,8 @@ model User {
   reviewedCorrections  Correction[]  @relation("CorrectionReviewer")
   requestedAttendance  AttendanceRequest[] @relation("AttendanceRequester")
   reviewedAttendance   AttendanceRequest[] @relation("AttendanceReviewer")
+  departmentSeats      DepartmentReviewer[]
+  reviewDecisions      ReviewDecision[]    @relation("DecisionReviewer")
   deletedAt            DateTime?
   createdAt            DateTime  @default(now())
 }
@@ -126,8 +139,20 @@ model Department {
   projectId  String?    @unique
   project    Project?   @relation(fields: [projectId], references: [id])
   managers   User[]     @relation("DeptManagers")
+  reviewers  DepartmentReviewer[]
   employees  Employee[]
   deletedAt  DateTime?
+}
+
+model DepartmentReviewer {
+  departmentId String
+  seat         ReviewSeat
+  userId       String
+  department   Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  user         User       @relation(fields: [userId], references: [id])
+
+  @@id([departmentId, seat])
+  @@index([userId])
 }
 
 model WorkSchedule {
@@ -281,6 +306,8 @@ model Correction {
   changes       Json
   reason        String
   status        CorrectionStatus @default(PENDING)
+  stage         ReviewSeat       @default(TEAM_LEADER)
+  decisions     ReviewDecision[]
   reviewedById  String?
   reviewedBy    User?            @relation("CorrectionReviewer", fields: [reviewedById], references: [id])
   reviewNote    String?
@@ -299,6 +326,8 @@ model AttendanceRequest {
   overtimeMin   Int?
   reason        String
   status        RequestStatus @default(PENDING)
+  stage         ReviewSeat    @default(TEAM_LEADER)
+  decisions     ReviewDecision[]
   requestedById String
   requestedBy   User          @relation("AttendanceRequester", fields: [requestedById], references: [id])
   reviewedById  String?
@@ -308,6 +337,24 @@ model AttendanceRequest {
   reviewedAt    DateTime?
 
   @@index([employeeId, startDate])
+}
+
+model ReviewDecision {
+  id           String        @id @default(cuid())
+  seat         ReviewSeat
+  outcome      ReviewOutcome
+  note         String
+  reviewerId   String
+  reviewer     User          @relation("DecisionReviewer", fields: [reviewerId], references: [id])
+  correctionId String?
+  correction   Correction?   @relation(fields: [correctionId], references: [id], onDelete: Cascade)
+  requestId    String?
+  request      AttendanceRequest? @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  createdAt    DateTime      @default(now())
+
+  @@unique([correctionId, seat])
+  @@unique([requestId, seat])
+  @@index([reviewerId])
 }
 
 model AuditLog {

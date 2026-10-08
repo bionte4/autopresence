@@ -3,10 +3,12 @@ import { connection } from "next/server";
 import { forbidden, notFound, redirect } from "next/navigation";
 import { ReviewForm } from "@/app/corrections/review-form";
 import { MasterFrame } from "@/app/master/master-frame";
+import { ReviewChain } from "@/components/domain/review-chain";
 import { getCorrection } from "@/modules/corrections/service";
 import { getCurrentUser } from "@/modules/auth/current-user";
 import { formatCalendarDate, formatMinutes } from "@/lib/format";
 import { can } from "@/modules/rbac/policy";
+import { SEAT_LABEL } from "@/modules/review/chain";
 
 const STATUS_LABEL = { PENDING: "Menunggu", APPROVED: "Disetujui", REJECTED: "Ditolak" } as const;
 
@@ -36,7 +38,7 @@ async function CorrectionDetail({ params }: { params: Promise<{ id: string }> })
   return (
     <MasterFrame title="Detail koreksi" user={user}>
       <dl className="grid gap-2 text-sm">
-        <div><dt className="text-ink-2">Status</dt><dd>{STATUS_LABEL[row.status]}</dd></div>
+        <div><dt className="text-ink-2">Status</dt><dd>{row.status === "PENDING" ? `Menunggu ${SEAT_LABEL[row.stage]}` : STATUS_LABEL[row.status]}</dd></div>
         <div><dt className="text-ink-2">Pegawai</dt><dd>{row.employeeName}{row.date ? ` · ${formatCalendarDate(row.date)}` : ""}</dd></div>
         <div><dt className="text-ink-2">Alasan</dt><dd>{row.reason}</dd></div>
         <div><dt className="text-ink-2">Jam masuk</dt><dd>{clockLabel("clockInMin" in changes ? changes.clockInMin : undefined)}</dd></div>
@@ -45,7 +47,10 @@ async function CorrectionDetail({ params }: { params: Promise<{ id: string }> })
         {row.evidenceNote ? <div><dt className="text-ink-2">Bukti</dt><dd>{row.evidenceNote}</dd></div> : null}
         {row.reviewNote ? <div><dt className="text-ink-2">Catatan keputusan</dt><dd>{row.reviewNote}</dd></div> : null}
       </dl>
-      {row.status === "PENDING" && can(user, "correction.review") ? <ReviewForm id={row.id} /> : null}
+      <ReviewChain steps={row.steps ?? []} />
+      {row.status === "PENDING" && can(user, "correction.review", { departmentId: row.departmentId, reviewSeat: row.stage, ownerUserId: row.requestedById }) ? (
+        <ReviewForm id={row.id} seatLabel={SEAT_LABEL[row.stage]} />
+      ) : null}
     </MasterFrame>
   );
 }

@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-export function ReviewForm({ id }: { id: string }) {
+export function ReviewForm({ id, seatLabel }: { id: string; seatLabel: string }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -33,7 +33,7 @@ export function ReviewForm({ id }: { id: string }) {
         event.preventDefault();
       }}
     >
-      <h2 className="font-semibold">Keputusan</h2>
+      <h2 className="font-semibold">Keputusan {seatLabel}</h2>
       {error ? (
         <p role="alert" className="text-sm text-danger">
           {error}

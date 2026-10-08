@@ -1,4 +1,4 @@
-import type { Role, Severity } from "@prisma/client";
+import type { ReviewSeat, Role, Severity } from "@prisma/client";
 
 export const ACTIONS = [
   "user.manage",
@@ -32,6 +32,7 @@ export type AuthUser = {
   role: Role;
   employeeId: string | null;
   managedDepartmentIds: string[];
+  reviewSeats?: ReadonlyArray<{ departmentId: string; seat: ReviewSeat }>;
 };
 
 export type Resource = {
@@ -39,6 +40,7 @@ export type Resource = {
   departmentId?: string | null;
   severity?: Severity;
   ownerUserId?: string | null;
+  reviewSeat?: ReviewSeat;
 };
 
 export type DataScope =
@@ -57,9 +59,9 @@ const ALLOWED: Record<Action, readonly Role[]> = {
   "upload.delete": ["SUPER_ADMIN", "HR_ADMIN"],
   "attendance.read": ["SUPER_ADMIN", "HR_ADMIN", "MANAGER", "AUDITOR", "EMPLOYEE"],
   "correction.create": ["SUPER_ADMIN", "HR_ADMIN", "MANAGER", "EMPLOYEE"],
-  "correction.review": ["SUPER_ADMIN", "HR_ADMIN"],
+  "correction.review": ["SUPER_ADMIN", "HR_ADMIN", "MANAGER", "EMPLOYEE"],
   "request.create": ["SUPER_ADMIN", "HR_ADMIN", "MANAGER", "EMPLOYEE"],
-  "request.review": ["SUPER_ADMIN", "HR_ADMIN", "MANAGER"],
+  "request.review": ["SUPER_ADMIN", "HR_ADMIN", "MANAGER", "EMPLOYEE"],
   "anomaly.read": ["SUPER_ADMIN", "HR_ADMIN", "MANAGER", "AUDITOR"],
   "anomaly.resolve": ["SUPER_ADMIN", "HR_ADMIN", "MANAGER"],
   "rule.manage": ["SUPER_ADMIN", "HR_ADMIN"],
@@ -97,6 +99,14 @@ export function scopeFor(user: AuthUser): DataScope {
   }
 }
 
+export function heldDepartmentIds(user: AuthUser): string[] {
+  return [...new Set((user.reviewSeats ?? []).map((seat) => seat.departmentId))];
+}
+
+export function reviewsDepartment(user: AuthUser, departmentId: string | null): boolean {
+  return departmentId !== null && heldDepartmentIds(user).includes(departmentId);
+}
+
 function resourceAllows(user: AuthUser, action: Action, resource: Resource | undefined): boolean {
   if (action === "anomaly.resolve" && user.role === "MANAGER") {
     if (!resource?.departmentId || !resource.severity) return false;
@@ -124,9 +134,12 @@ function resourceAllows(user: AuthUser, action: Action, resource: Resource | und
     return resource.employeeId === user.employeeId;
   }
 
-  if (action === "request.review" && user.role === "MANAGER") {
-    if (!resource?.departmentId || resource.employeeId === user.employeeId) return false;
-    return user.managedDepartmentIds.includes(resource.departmentId);
+  if (action === "request.review" || action === "correction.review") {
+    if (!resource?.departmentId || !resource.reviewSeat) return false;
+    if (resource.ownerUserId === user.id) return false;
+    return (user.reviewSeats ?? []).some(
+      (seat) => seat.departmentId === resource.departmentId && seat.seat === resource.reviewSeat,
+    );
   }
 
   if (action === "notification.read" && resource?.ownerUserId) {

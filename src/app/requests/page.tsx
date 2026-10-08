@@ -9,6 +9,7 @@ import { formatCalendarDate } from "@/lib/format";
 import { firstParam } from "@/modules/master/query";
 import { can } from "@/modules/rbac/policy";
 import { parseRequestListQuery, type RequestListQuery } from "@/modules/requests/schema";
+import { pendingLabel } from "@/modules/review/chain";
 import { canProposeRequest, listRequestPage } from "@/modules/requests/service";
 import { RequestForm } from "./request-form";
 
@@ -69,7 +70,7 @@ async function RequestsContent({
           {result.data.items.map((item) => (
             <li key={item.id} className="flex flex-col gap-1 px-4 py-3 text-sm sm:flex-row sm:items-center sm:justify-between">
               <span>
-                <span className="font-semibold">{item.employeeName}</span> · {KIND_LABEL[item.kind]} · {STATUS_LABEL[item.status]}
+                <span className="font-semibold">{item.employeeName}</span> · {KIND_LABEL[item.kind]} · {item.status === "PENDING" ? pendingLabel(item.stage) : STATUS_LABEL[item.status]}
                 <span className="block text-ink-2">
                   {formatCalendarDate(item.startDate)}
                   {item.endDate !== item.startDate ? ` s.d. ${formatCalendarDate(item.endDate)}` : ""} · {item.reason}

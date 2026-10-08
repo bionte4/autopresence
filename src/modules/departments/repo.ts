@@ -1,4 +1,4 @@
-import { Prisma } from "@prisma/client";
+import { Prisma, type ReviewSeat } from "@prisma/client";
 import { prisma, UniqueConflict, type Db } from "@/lib/prisma";
 import { visiblePage, type ListQuery } from "@/modules/master/query";
 
@@ -16,6 +16,7 @@ const detail = {
       customer: { select: { name: true } },
     },
   },
+  reviewers: { select: { seat: true, userId: true, user: { select: { name: true } } } },
 } as const;
 
 export type DepartmentRow = Prisma.DepartmentGetPayload<{ select: typeof detail }>;
@@ -92,6 +93,34 @@ export async function softDeleteDepartment(db: Db, id: string) {
     data: { deletedAt: new Date(), projectId: null },
     select: detail,
   });
+}
+
+export async function replaceReviewers(
+  db: Db,
+  departmentId: string,
+  reviewers: Partial<Record<ReviewSeat, string | null>>,
+) {
+  const seats = (["TEAM_LEADER", "OPERATION_MANAGER", "PROJECT_MANAGER"] as const).flatMap((seat) => {
+    const userId = reviewers[seat];
+    return userId ? [{ departmentId, seat, userId }] : [];
+  });
+  await db.departmentReviewer.deleteMany({ where: { departmentId } });
+  if (seats.length > 0) await db.departmentReviewer.createMany({ data: seats });
+}
+
+export async function listReviewerOptions(db: Db = prisma) {
+  return db.user.findMany({
+    where: { isActive: true, deletedAt: null, role: { not: "AUDITOR" } },
+    orderBy: { name: "asc" },
+    select: { id: true, name: true, email: true },
+    take: 200,
+  });
+}
+
+export async function countActiveUsers(ids: string[], db: Db = prisma) {
+  const unique = [...new Set(ids)];
+  if (unique.length === 0) return 0;
+  return db.user.count({ where: { id: { in: unique }, isActive: true, deletedAt: null, role: { not: "AUDITOR" } } });
 }
 
 export async function listDepartmentOptions(db: Db = prisma) {

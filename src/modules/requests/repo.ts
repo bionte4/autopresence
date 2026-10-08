@@ -12,19 +12,28 @@ const listSelect = {
   overtimeMin: true,
   reason: true,
   status: true,
+  stage: true,
+  requestedById: true,
   createdAt: true,
   employee: { select: { id: true, name: true, departmentId: true } },
 } as const;
 
-function scopedWhere(scope: DataScope, query: RequestListQuery): Prisma.AttendanceRequestWhereInput {
-  const employee =
+function employeeFilter(scope: DataScope, reviewDepartmentIds: readonly string[]): Prisma.EmployeeWhereInput | undefined {
+  if (scope.kind === "all") return undefined;
+  const own: Prisma.EmployeeWhereInput =
     scope.kind === "self"
       ? { id: scope.employeeId ?? "__none__" }
-      : scope.kind === "departments"
-        ? { departmentId: { in: scope.departmentIds } }
-        : {};
+      : { departmentId: { in: scope.departmentIds.length > 0 ? scope.departmentIds : ["__none__"] } };
+  if (reviewDepartmentIds.length === 0) return own;
+  if (scope.kind === "self" && !scope.employeeId) return { departmentId: { in: [...reviewDepartmentIds] } };
+  if (scope.kind === "departments" && scope.departmentIds.length === 0) return { departmentId: { in: [...reviewDepartmentIds] } };
+  return { OR: [own, { departmentId: { in: [...reviewDepartmentIds] } }] };
+}
+
+function scopedWhere(scope: DataScope, query: RequestListQuery, reviewDepartmentIds: readonly string[]): Prisma.AttendanceRequestWhereInput {
+  const employee = employeeFilter(scope, reviewDepartmentIds);
   return {
-    ...(Object.keys(employee).length ? { employee } : {}),
+    ...(employee ? { employee } : {}),
     ...(query.status ? { status: query.status as RequestStatus } : {}),
     ...(query.q
       ? {
@@ -37,10 +46,10 @@ function scopedWhere(scope: DataScope, query: RequestListQuery): Prisma.Attendan
   };
 }
 
-export async function listRequests(scope: DataScope, query: RequestListQuery) {
-  if (scope.kind === "self" && !scope.employeeId) return { total: 0, rows: [] };
-  if (scope.kind === "departments" && scope.departmentIds.length === 0) return { total: 0, rows: [] };
-  const where = scopedWhere(scope, query);
+export async function listRequests(scope: DataScope, query: RequestListQuery, reviewDepartmentIds: readonly string[] = []) {
+  if (scope.kind === "self" && !scope.employeeId && reviewDepartmentIds.length === 0) return { total: 0, rows: [] };
+  if (scope.kind === "departments" && scope.departmentIds.length === 0 && reviewDepartmentIds.length === 0) return { total: 0, rows: [] };
+  const where = scopedWhere(scope, query, reviewDepartmentIds);
   const [total, rows] = await Promise.all([
     prisma.attendanceRequest.count({ where }),
     prisma.attendanceRequest.findMany({
@@ -57,7 +66,10 @@ export async function listRequests(scope: DataScope, query: RequestListQuery) {
 export async function findRequest(id: string) {
   return prisma.attendanceRequest.findUnique({
     where: { id },
-    include: { employee: { select: { id: true, name: true, pin: true, departmentId: true } } },
+    include: {
+      employee: { select: { id: true, name: true, pin: true, departmentId: true } },
+      decisions: { select: { seat: true, outcome: true, note: true, reviewer: { select: { name: true } } }, orderBy: { createdAt: "asc" } },
+    },
   });
 }
 

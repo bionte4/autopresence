@@ -10,6 +10,7 @@ import { getCurrentUser } from "@/modules/auth/current-user";
 import { formatCalendarDate } from "@/lib/format";
 import { firstParam } from "@/modules/master/query";
 import { can } from "@/modules/rbac/policy";
+import { pendingLabel } from "@/modules/review/chain";
 
 const STATUS_LABEL = { PENDING: "Menunggu", APPROVED: "Disetujui", REJECTED: "Ditolak" } as const;
 
@@ -90,7 +91,7 @@ async function CorrectionsContent({
           {data.items.map((item) => (
             <li key={item.id} className="flex flex-col gap-1 py-3 text-sm sm:flex-row sm:items-center sm:justify-between">
               <span>
-                <span className="mr-2 rounded-full bg-surface-2 px-2 py-0.5 text-xs font-medium">{STATUS_LABEL[item.status]}</span>
+                <span className="mr-2 rounded-full bg-surface-2 px-2 py-0.5 text-xs font-medium">{item.status === "PENDING" ? pendingLabel(item.stage) : STATUS_LABEL[item.status]}</span>
                 {item.employeeName ?? "Pegawai"}
                 {item.date ? ` · ${formatCalendarDate(item.date)}` : ""}
                 <span className="block text-ink-2">{item.reason}</span>

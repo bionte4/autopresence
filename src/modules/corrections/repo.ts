@@ -1,4 +1,4 @@
-import { Prisma, type CorrectionStatus } from "@prisma/client";
+import { Prisma, type CorrectionStatus, type ReviewSeat } from "@prisma/client";
 import { prisma, type Db } from "@/lib/prisma";
 import type { DataScope } from "@/modules/rbac/policy";
 import type { CorrectionListQuery } from "./schema";
@@ -8,6 +8,8 @@ const listSelect = {
   recordId: true,
   reason: true,
   status: true,
+  stage: true,
+  requestedById: true,
   createdAt: true,
   record: {
     select: {
@@ -17,15 +19,22 @@ const listSelect = {
   },
 } as const;
 
-function scopedWhere(scope: DataScope, query: CorrectionListQuery): Prisma.CorrectionWhereInput {
-  const employee =
+function employeeFilter(scope: DataScope, reviewDepartmentIds: readonly string[]): Prisma.EmployeeWhereInput | undefined {
+  if (scope.kind === "all") return undefined;
+  const own: Prisma.EmployeeWhereInput =
     scope.kind === "self"
       ? { id: scope.employeeId ?? "__none__" }
-      : scope.kind === "departments"
-        ? { departmentId: { in: scope.departmentIds } }
-        : {};
+      : { departmentId: { in: scope.departmentIds.length > 0 ? scope.departmentIds : ["__none__"] } };
+  if (reviewDepartmentIds.length === 0) return own;
+  if (scope.kind === "self" && !scope.employeeId) return { departmentId: { in: [...reviewDepartmentIds] } };
+  if (scope.kind === "departments" && scope.departmentIds.length === 0) return { departmentId: { in: [...reviewDepartmentIds] } };
+  return { OR: [own, { departmentId: { in: [...reviewDepartmentIds] } }] };
+}
+
+function scopedWhere(scope: DataScope, query: CorrectionListQuery, reviewDepartmentIds: readonly string[]): Prisma.CorrectionWhereInput {
+  const employee = employeeFilter(scope, reviewDepartmentIds);
   return {
-    ...(Object.keys(employee).length ? { record: { employee } } : {}),
+    ...(employee ? { record: { employee } } : {}),
     ...(query.status ? { status: query.status as CorrectionStatus } : {}),
     ...(query.q
       ? {
@@ -38,10 +47,10 @@ function scopedWhere(scope: DataScope, query: CorrectionListQuery): Prisma.Corre
   };
 }
 
-export async function listCorrections(scope: DataScope, query: CorrectionListQuery) {
-  if (scope.kind === "self" && !scope.employeeId) return { total: 0, rows: [] };
-  if (scope.kind === "departments" && scope.departmentIds.length === 0) return { total: 0, rows: [] };
-  const where = scopedWhere(scope, query);
+export async function listCorrections(scope: DataScope, query: CorrectionListQuery, reviewDepartmentIds: readonly string[] = []) {
+  if (scope.kind === "self" && !scope.employeeId && reviewDepartmentIds.length === 0) return { total: 0, rows: [] };
+  if (scope.kind === "departments" && scope.departmentIds.length === 0 && reviewDepartmentIds.length === 0) return { total: 0, rows: [] };
+  const where = scopedWhere(scope, query, reviewDepartmentIds);
   const [total, rows] = await Promise.all([
     prisma.correction.count({ where }),
     prisma.correction.findMany({
@@ -62,6 +71,7 @@ export async function findCorrection(id: string) {
       record: {
         include: { employee: { select: { id: true, name: true, pin: true, departmentId: true } } },
       },
+      decisions: { select: { seat: true, outcome: true, note: true, reviewer: { select: { name: true } } }, orderBy: { createdAt: "asc" } },
     },
   });
 }
@@ -99,7 +109,7 @@ export async function listCorrectableRecords(scope: DataScope) {
 
 export async function insertCorrection(
   db: Db,
-  data: { recordId: string; requestedById: string; changes: Prisma.InputJsonValue; reason: string },
+  data: { recordId: string; requestedById: string; changes: Prisma.InputJsonValue; reason: string; stage: ReviewSeat },
 ) {
   return db.correction.create({ data, select: { id: true, recordId: true, status: true, reason: true } });
 }

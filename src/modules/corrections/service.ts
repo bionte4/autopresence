@@ -1,9 +1,12 @@
-import type { CorrectionStatus, Prisma } from "@prisma/client";
+import type { CorrectionStatus, Prisma, ReviewSeat } from "@prisma/client";
 import { transaction } from "@/lib/prisma";
 import { audit } from "@/modules/audit/service";
 import { visiblePage } from "@/modules/master/query";
 import { conflict, denied, invalid, missing, type ServiceResult } from "@/modules/master/result";
-import { can, scopeFor, type AuthUser } from "@/modules/rbac/policy";
+import { can, heldDepartmentIds, reviewsDepartment, scopeFor, type AuthUser } from "@/modules/rbac/policy";
+import { chainSteps, openingSeat, seatAfterApproval, type ChainStep } from "@/modules/review/chain";
+import { guardSeat } from "@/modules/review/guard";
+import { insertDecision } from "@/modules/review/repo";
 import { isoDate } from "@/modules/uploads/dates";
 import { applyCorrectionPatch, type CorrectionPatch } from "./derive";
 import {
@@ -23,10 +26,14 @@ export type CorrectionDto = {
   date: string | null;
   reason: string;
   status: CorrectionStatus;
+  stage: ReviewSeat;
+  departmentId: string | null;
+  requestedById: string;
   createdAt: string;
   changes?: Prisma.JsonValue;
   reviewNote?: string | null;
   evidenceNote?: string | null;
+  steps?: ChainStep[];
 };
 
 type ListRow = {
@@ -34,8 +41,10 @@ type ListRow = {
   recordId: string;
   reason: string;
   status: CorrectionStatus;
+  stage: ReviewSeat;
+  requestedById: string;
   createdAt: Date;
-  record: { date: Date; employee: { name: string } | null };
+  record: { date: Date; employee: { name: string; departmentId: string | null } | null };
 };
 
 function toListDto(row: ListRow): CorrectionDto {
@@ -46,6 +55,9 @@ function toListDto(row: ListRow): CorrectionDto {
     date: isoDate(row.record.date),
     reason: row.reason,
     status: row.status,
+    stage: row.stage,
+    departmentId: row.record.employee?.departmentId ?? null,
+    requestedById: row.requestedById,
     createdAt: row.createdAt.toISOString(),
   };
 }
@@ -63,6 +75,7 @@ function inScope(actor: AuthUser, employeeId: string, departmentId: string | nul
   if (!can(actor, "attendance.read")) return false;
   const scope = scopeFor(actor);
   if (scope.kind === "all") return true;
+  if (reviewsDepartment(actor, departmentId)) return true;
   if (scope.kind === "self") return scope.employeeId === employeeId;
   return departmentId !== null && scope.departmentIds.includes(departmentId);
 }
@@ -81,12 +94,13 @@ export async function listCorrectionPage(
 > {
   if (!can(actor, "attendance.read")) return denied();
   const scope = scopeFor(actor);
+  const departments = heldDepartmentIds(actor);
   const [{ total, rows }, records] = await Promise.all([
-    listCorrections(scope, query),
+    listCorrections(scope, query, departments),
     canProposeCorrection(actor) ? listCorrectableRecords(scope) : Promise.resolve([]),
   ]);
   const page = visiblePage(query.page, query.pageSize, total);
-  const items = page === query.page ? rows : (await listCorrections(scope, { ...query, page })).rows;
+  const items = page === query.page ? rows : (await listCorrections(scope, { ...query, page }, departments)).rows;
   return {
     ok: true as const,
     data: {
@@ -129,6 +143,19 @@ export async function getCorrection(actor: AuthUser, id: string): Promise<Servic
       changes: row.changes,
       reviewNote: row.reviewNote,
       evidenceNote: evidenceNote || null,
+      stage: row.stage,
+      departmentId: row.record.employee.departmentId,
+      requestedById: row.requestedById,
+      steps: chainSteps({
+        status: row.status,
+        stage: row.stage,
+        decisions: row.decisions.map((decision) => ({
+          seat: decision.seat,
+          outcome: decision.outcome,
+          reviewerName: decision.reviewer.name,
+          note: decision.note,
+        })),
+      }),
     },
   };
 }
@@ -151,7 +178,16 @@ export async function createCorrection(actor: AuthUser, input: unknown, ip: stri
   const created = await transaction(async (tx) => {
     const again = await findPendingCorrection(body.recordId, tx);
     if (again) return null;
-    const row = await insertCorrection(tx, { recordId: body.recordId, requestedById: actor.id, changes, reason: body.reason });
+    const seats = record.employee.departmentId
+      ? await tx.departmentReviewer.findMany({ where: { departmentId: record.employee.departmentId }, select: { seat: true, userId: true } })
+      : [];
+    const row = await insertCorrection(tx, {
+      recordId: body.recordId,
+      requestedById: actor.id,
+      changes,
+      reason: body.reason,
+      stage: openingSeat(actor.id, seats),
+    });
     await audit(
       { actorId: actor.id, action: "correction.create", entity: "Correction", entityId: row.id, diff: { recordId: body.recordId, changes, reason: body.reason }, ip },
       tx,
@@ -192,21 +228,42 @@ export async function reviewCorrection(
   note: string,
   ip: string | null,
 ): Promise<ServiceResult<CorrectionDto>> {
-  if (!can(actor, "correction.review")) return denied();
   const existing = await findCorrection(id);
-  if (!existing) return missing("Koreksi tidak ditemukan.");
+  if (!existing || !inScope(actor, existing.record.employeeId, existing.record.employee.departmentId)) {
+    return missing("Koreksi tidak ditemukan.");
+  }
   if (existing.status !== "PENDING") return conflict("Koreksi sudah diputuskan.");
-  const patch = outcome === "APPROVED" ? patchFromChanges(existing.changes) : null;
-  if (outcome === "APPROVED" && !patch) return invalid("Perubahan tersimpan tidak valid.");
+  const guard = await guardSeat(actor, "correction.review", {
+    departmentId: existing.record.employee.departmentId,
+    stage: existing.stage,
+    requesterId: existing.requestedById,
+  });
+  if (!guard.ok) return guard;
+  const nextSeat = outcome === "APPROVED" ? seatAfterApproval(existing.stage, existing.requestedById, guard.data) : null;
+  const finished = outcome === "REJECTED" || nextSeat === null;
+  const patch = finished && outcome === "APPROVED" ? patchFromChanges(existing.changes) : null;
+  if (finished && outcome === "APPROVED" && !patch) return invalid("Perubahan tersimpan tidak valid.");
 
   try {
     await transaction(async (tx) => {
       const claimed = await tx.correction.updateMany({
-        where: { id, status: "PENDING" },
-        data: { status: outcome, reviewedById: actor.id, reviewNote: note, reviewedAt: new Date() },
+        where: { id, status: "PENDING", stage: existing.stage },
+        data: {
+          ...(finished ? { status: outcome } : { stage: nextSeat ?? existing.stage }),
+          reviewedById: actor.id,
+          reviewNote: note,
+          reviewedAt: new Date(),
+        },
       });
       if (claimed.count !== 1) throw new AlreadyDecided();
-      if (outcome === "APPROVED" && patch) {
+      await insertDecision(tx, {
+        seat: existing.stage,
+        outcome,
+        note,
+        reviewerId: actor.id,
+        correctionId: id,
+      });
+      if (finished && outcome === "APPROVED" && patch) {
         const before = {
           clockInMin: existing.record.clockInMin,
           clockOutMin: existing.record.clockOutMin,
@@ -241,10 +298,10 @@ export async function reviewCorrection(
       await audit(
         {
           actorId: actor.id,
-          action: outcome === "APPROVED" ? "correction.approve" : "correction.reject",
+          action: finished ? (outcome === "APPROVED" ? "correction.approve" : "correction.reject") : "correction.advance",
           entity: "Correction",
           entityId: id,
-          diff: { outcome, note },
+          diff: { seat: existing.stage, outcome, note },
           ip,
         },
         tx,

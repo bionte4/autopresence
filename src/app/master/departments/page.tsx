@@ -62,6 +62,9 @@ async function DepartmentsContent({
               <span>
                 {item.name}
                 {item.customerName && item.projectName ? ` — ${item.customerName} / ${item.projectName}` : ""}
+                <span className="block text-xs text-ink-2">
+                  Peninjau {Object.values(item.reviewers).filter(Boolean).length}/3
+                </span>
               </span>
               <Link href={`/master/departments/${item.id}`} className="text-sm underline">
                 Ubah
