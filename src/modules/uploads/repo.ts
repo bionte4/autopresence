@@ -35,7 +35,10 @@ export async function findUpload(id: string, db: Db = prisma) {
   return db.upload.findUnique({
     where: { id },
     include: {
-      anomalies: { orderBy: { createdAt: "asc" } },
+      anomalies: {
+        orderBy: { createdAt: "asc" },
+        include: { employee: { select: { name: true } } },
+      },
     },
   });
 }

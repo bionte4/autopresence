@@ -88,6 +88,7 @@ export type UploadDto = {
     severity: Severity;
     message: string;
     employeeId: string | null;
+    employeeName: string | null;
     date: string | null;
     details: Prisma.JsonValue;
   }>;
@@ -134,6 +135,7 @@ export async function getUpload(actor: AuthUser, id: string): Promise<ServiceRes
         severity: anomaly.severity,
         message: anomaly.message,
         employeeId: anomaly.employeeId,
+        employeeName: anomaly.employee?.name ?? null,
         date: anomaly.date ? isoDate(anomaly.date) : null,
         details: anomaly.details,
       })),
