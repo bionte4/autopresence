@@ -51,9 +51,9 @@ async function SchedulesContent({
     <MasterFrame title="Jadwal kerja" user={user}>
       <ScheduleForm />
       {result.data.items.length === 0 ? (
-        <p className="rounded-md border border-dashed px-4 py-8 text-center text-sm">Tidak ada jadwal.</p>
+        <p className="rounded-xl border border-dashed border-line px-4 py-8 text-center text-sm text-ink-2">Tidak ada jadwal.</p>
       ) : (
-        <ul className="divide-y divide-zinc-200 dark:divide-zinc-800">
+        <ul className="divide-y divide-line overflow-hidden rounded-xl border border-line bg-surface">
           {result.data.items.map((item) => (
             <li key={item.id} className="flex items-center justify-between gap-3 py-3">
               <span>

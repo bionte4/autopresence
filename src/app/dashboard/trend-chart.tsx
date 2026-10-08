@@ -4,7 +4,7 @@ import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxi
 
 export function TrendChart({ data }: { data: Array<{ bucket: string; lateEvents: number }> }) {
   if (data.length === 0) {
-    return <p className="text-sm text-zinc-600 dark:text-zinc-400">Tidak ada keterlambatan pada periode ini.</p>;
+    return <p className="text-sm text-ink-2">Tidak ada keterlambatan pada periode ini.</p>;
   }
   return (
     <div className="h-64 w-full">

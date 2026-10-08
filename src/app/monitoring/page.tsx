@@ -66,7 +66,7 @@ async function MonitoringContent({
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead>
-              <tr className="border-b dark:border-zinc-800">
+              <tr className="border-b border-line">
                 <th className="py-2 pr-3 font-medium">Jenis</th>
                 <th className="py-2 pr-3 font-medium">Periode</th>
                 <th className="py-2 pr-3 font-medium">Batas</th>
@@ -75,7 +75,7 @@ async function MonitoringContent({
             </thead>
             <tbody>
               {board.data.map((row) => (
-                <tr key={`${row.scheduleId}-${row.from}`} className="border-b dark:border-zinc-800">
+                <tr key={`${row.scheduleId}-${row.from}`} className="border-b border-line">
                   <td className="py-2 pr-3">{GRANULARITY_LABEL[row.granularity]}</td>
                   <td className="py-2 pr-3">{formatCalendarDate(row.from)} s.d. {formatCalendarDate(row.to)}</td>
                   <td className="py-2 pr-3">{row.cutoffTime}</td>
@@ -96,9 +96,9 @@ async function MonitoringContent({
           <h2 className="text-lg font-semibold">Jadwal yang diharapkan</h2>
           <ScheduleForm />
           {schedules.data.total === 0 ? (
-            <p className="text-sm text-zinc-600">Belum ada jadwal.</p>
+            <p className="text-sm text-ink-2">Belum ada jadwal.</p>
           ) : (
-            <ul className="divide-y divide-zinc-200 dark:divide-zinc-800">
+            <ul className="divide-y divide-line overflow-hidden rounded-xl border border-line bg-surface">
               {schedules.data.items.map((item) => (
                 <li key={item.id} className="flex flex-wrap items-center justify-between gap-3 py-3 text-sm">
                   <span>

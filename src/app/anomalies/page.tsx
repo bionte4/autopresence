@@ -74,7 +74,7 @@ async function AnomaliesContent({
     if (error instanceof ZodError) {
       return (
         <MasterFrame title="Anomali" user={user}>
-          <p role="alert" className="text-sm text-red-700">Filter tidak valid.</p>
+          <p role="alert" className="text-sm text-danger">Filter tidak valid.</p>
         </MasterFrame>
       );
     }
@@ -87,32 +87,32 @@ async function AnomaliesContent({
 
   return (
     <MasterFrame title="Anomali" user={user}>
-      <form className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3" action="/anomalies">
-        <label className="flex flex-col gap-1 text-sm">
+      <form className="panel grid gap-3 sm:grid-cols-2 lg:grid-cols-3" action="/anomalies">
+        <label className="flex flex-col gap-1 text-xs text-ink-2">
           Cari
-          <input name="q" defaultValue={query.q} className="rounded-md border px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900" />
+          <input name="q" defaultValue={query.q} className="field font-normal" />
         </label>
-        <label className="flex flex-col gap-1 text-sm">
+        <label className="flex flex-col gap-1 text-xs text-ink-2">
           Status
-          <select name="status" defaultValue={query.status ?? ""} className="rounded-md border px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900">
+          <select name="status" defaultValue={query.status ?? ""} className="field font-normal">
             <option value="">Semua</option>
             {STATUSES.map(([value, label]) => (
               <option key={value} value={value}>{label}</option>
             ))}
           </select>
         </label>
-        <label className="flex flex-col gap-1 text-sm">
+        <label className="flex flex-col gap-1 text-xs text-ink-2">
           Tingkat
-          <select name="severity" defaultValue={query.severity ?? ""} className="rounded-md border px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900">
+          <select name="severity" defaultValue={query.severity ?? ""} className="field font-normal">
             <option value="">Semua</option>
             {SEVERITIES.map(([value, label]) => (
               <option key={value} value={value}>{label}</option>
             ))}
           </select>
         </label>
-        <label className="flex flex-col gap-1 text-sm">
+        <label className="flex flex-col gap-1 text-xs text-ink-2">
           Jenis
-          <select name="type" defaultValue={query.type ?? ""} className="rounded-md border px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900">
+          <select name="type" defaultValue={query.type ?? ""} className="field font-normal">
             <option value="">Semua</option>
             {TYPES.map(([value, label]) => (
               <option key={value} value={value}>{label}</option>
@@ -120,9 +120,9 @@ async function AnomaliesContent({
           </select>
         </label>
         {data.employees.length > 0 ? (
-          <label className="flex flex-col gap-1 text-sm">
+          <label className="flex flex-col gap-1 text-xs text-ink-2">
             Pegawai
-            <select name="employeeId" defaultValue={query.employeeId ?? ""} className="rounded-md border px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900">
+            <select name="employeeId" defaultValue={query.employeeId ?? ""} className="field font-normal">
               <option value="">Semua</option>
               {data.employees.map((employee) => (
                 <option key={employee.id} value={employee.id}>{employee.name}</option>
@@ -130,26 +130,26 @@ async function AnomaliesContent({
             </select>
           </label>
         ) : null}
-        <label className="flex flex-col gap-1 text-sm">
+        <label className="flex flex-col gap-1 text-xs text-ink-2">
           Dari
-          <input type="date" name="from" defaultValue={query.from ?? ""} className="rounded-md border px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900" />
+          <input type="date" name="from" defaultValue={query.from ?? ""} className="field font-normal" />
         </label>
-        <label className="flex flex-col gap-1 text-sm">
+        <label className="flex flex-col gap-1 text-xs text-ink-2">
           Sampai
-          <input type="date" name="to" defaultValue={query.to ?? ""} className="rounded-md border px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900" />
+          <input type="date" name="to" defaultValue={query.to ?? ""} className="field font-normal" />
         </label>
-        <button type="submit" className="self-end rounded-md border px-3 py-2 text-sm">Terapkan</button>
+        <button type="submit" className="btn self-end">Terapkan</button>
       </form>
       {data.total === 0 ? (
         <EmptyState title="Tidak ada anomali pada filter ini." />
       ) : (
-        <ul className="divide-y divide-zinc-200 dark:divide-zinc-800">
+        <ul className="divide-y divide-line overflow-hidden rounded-xl border border-line bg-surface">
           {data.items.map((item) => (
             <li key={item.id} className="flex flex-col gap-1 py-3 text-sm sm:flex-row sm:items-center sm:justify-between">
               <span>
                 <SeverityBadge severity={item.severity} />{" "}
                 {ANOMALY_TYPE_LABEL[item.type]} · {ANOMALY_STATUS_LABEL[item.status]}
-                <span className="block text-zinc-600 dark:text-zinc-400">
+                <span className="block text-ink-2">
                   {item.message}
                   {item.employeeName ? ` · ${item.employeeName}` : ""}
                   {item.date ? ` · ${formatCalendarDate(item.date)}` : ""}

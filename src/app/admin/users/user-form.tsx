@@ -62,7 +62,7 @@ export function UserForm({
 
   return (
     <form ref={formRef} action={onSubmit} className="panel grid gap-3 sm:grid-cols-2">
-      {error ? <p role="alert" className="text-sm text-red-700">{error}</p> : null}
+      {error ? <p role="alert" className="text-sm text-danger">{error}</p> : null}
       <h2 className="font-semibold sm:col-span-2">{id ? "Ubah akun" : "Akun baru"}</h2>
       <label className="flex flex-col gap-1 text-xs text-ink-2">
         Nama

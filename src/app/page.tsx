@@ -5,7 +5,7 @@ import { getCurrentUser } from "@/modules/auth/current-user";
 
 export default function Home() {
   return (
-    <Suspense fallback={<p className="px-4 py-10 text-sm text-zinc-600">Memuat...</p>}>
+    <Suspense fallback={<p className="px-4 py-10 text-sm text-ink-2">Memuat...</p>}>
       <HomeRedirect />
     </Suspense>
   );

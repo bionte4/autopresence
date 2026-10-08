@@ -52,11 +52,11 @@ async function DepartmentsContent({
     <MasterFrame title="Departemen" user={user}>
       <DepartmentForm projects={projects.data} />
       {result.data.items.length === 0 ? (
-        <p className="rounded-md border border-dashed px-4 py-8 text-center text-sm text-zinc-600">
+        <p className="rounded-xl border border-dashed border-line px-4 py-8 text-center text-sm text-ink-2">
           Tidak ada departemen.
         </p>
       ) : (
-        <ul className="divide-y divide-zinc-200 dark:divide-zinc-800">
+        <ul className="divide-y divide-line overflow-hidden rounded-xl border border-line bg-surface">
           {result.data.items.map((item) => (
             <li key={item.id} className="flex items-center justify-between py-3">
               <span>

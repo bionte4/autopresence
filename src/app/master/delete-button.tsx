@@ -39,35 +39,38 @@ export function DeleteButton({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="rounded-md border border-red-300 px-3 py-2 text-sm text-red-700 dark:border-red-900 dark:text-red-300"
+        className="btn border-danger-soft text-danger"
       >
         Hapus
       </button>
       {open ? (
-        <div
-          role="alertdialog"
-          aria-modal="true"
-          aria-labelledby="delete-title"
-          className="mt-3 rounded-md border border-zinc-300 p-4 dark:border-zinc-700"
-        >
-          <p id="delete-title">{detail ?? `Hapus ${label}? Data tidak ditampilkan lagi.`}</p>
-          {error ? (
-            <p role="alert" className="mt-2 text-sm text-red-700">
-              {error}
-            </p>
-          ) : null}
-          <div className="mt-3 flex gap-2">
-            <button
-              type="button"
-              disabled={pending}
-              onClick={() => void confirmDelete()}
-              className="rounded-md bg-red-700 px-3 py-2 text-sm text-white disabled:opacity-60"
-            >
-              {pending ? "Menghapus..." : "Ya, hapus"}
-            </button>
-            <button type="button" onClick={() => setOpen(false)} className="rounded-md border px-3 py-2 text-sm">
-              Batal
-            </button>
+        <div className="fixed inset-0 z-40 flex items-end justify-center bg-ink/40 p-4 sm:items-center" onClick={() => setOpen(false)}>
+          <div
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="delete-title"
+            className="w-full max-w-md rounded-2xl border border-line bg-surface p-5 shadow-lg"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <p id="delete-title">{detail ?? `Hapus ${label}? Data tidak ditampilkan lagi.`}</p>
+            {error ? (
+              <p role="alert" className="mt-2 text-sm text-danger">
+                {error}
+              </p>
+            ) : null}
+            <div className="mt-4 flex flex-wrap gap-2">
+              <button
+                type="button"
+                disabled={pending}
+                onClick={() => void confirmDelete()}
+                className="btn border-danger bg-danger text-white disabled:opacity-60"
+              >
+                {pending ? "Menghapus..." : "Ya, hapus"}
+              </button>
+              <button type="button" onClick={() => setOpen(false)} className="btn">
+                Batal
+              </button>
+            </div>
           </div>
         </div>
       ) : null}

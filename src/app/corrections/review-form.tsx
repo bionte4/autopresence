@@ -33,16 +33,16 @@ export function ReviewForm({ id }: { id: string }) {
         event.preventDefault();
       }}
     >
-      <label className="flex flex-col gap-1 text-sm">
+      <label className="flex flex-col gap-1 text-xs text-ink-2">
         Catatan keputusan
-        <textarea name="note" required minLength={3} maxLength={500} className="rounded-md border px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900" />
+        <textarea name="note" required minLength={3} maxLength={500} className="field font-normal" />
       </label>
-      {error ? <p role="alert" className="text-sm text-red-700">{error}</p> : null}
+      {error ? <p role="alert" className="text-sm text-danger">{error}</p> : null}
       <div className="flex gap-3">
         <button
           type="button"
           disabled={pending}
-          className="rounded-md border px-3 py-2 text-sm"
+          className="btn"
           onClick={(event) => {
             const form = event.currentTarget.form;
             if (form) void decide("approve", form);
@@ -53,7 +53,7 @@ export function ReviewForm({ id }: { id: string }) {
         <button
           type="button"
           disabled={pending}
-          className="rounded-md border px-3 py-2 text-sm"
+          className="btn"
           onClick={(event) => {
             const form = event.currentTarget.form;
             if (form) void decide("reject", form);

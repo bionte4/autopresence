@@ -49,19 +49,19 @@ export function EmployeeForm({
   }
 
   return (
-    <form action={onSubmit} className="grid gap-3 rounded-md border border-zinc-200 p-4 dark:border-zinc-800">
-      {error ? <p role="alert" className="text-sm text-red-700">{error}</p> : null}
-      <label className="flex flex-col gap-1 text-sm font-medium">
+    <form action={onSubmit} className="panel grid gap-3">
+      {error ? <p role="alert" className="text-sm text-danger">{error}</p> : null}
+      <label className="flex flex-col gap-1 text-xs text-ink-2">
         PIN
-        <input name="pin" required defaultValue={pin} className="rounded-md border px-3 py-2 font-normal dark:border-zinc-700 dark:bg-zinc-900" />
+        <input name="pin" required defaultValue={pin} className="field font-normal" />
       </label>
-      <label className="flex flex-col gap-1 text-sm font-medium">
+      <label className="flex flex-col gap-1 text-xs text-ink-2">
         Nama
-        <input name="name" required defaultValue={name} className="rounded-md border px-3 py-2 font-normal dark:border-zinc-700 dark:bg-zinc-900" />
+        <input name="name" required defaultValue={name} className="field font-normal" />
       </label>
-      <label className="flex flex-col gap-1 text-sm font-medium">
+      <label className="flex flex-col gap-1 text-xs text-ink-2">
         Departemen
-        <select name="departmentId" defaultValue={departmentId ?? ""} className="rounded-md border px-3 py-2 font-normal dark:border-zinc-700 dark:bg-zinc-900">
+        <select name="departmentId" defaultValue={departmentId ?? ""} className="field font-normal">
           <option value="">Tanpa departemen</option>
           {departments.map((department) => (
             <option key={department.id} value={department.id}>
@@ -70,9 +70,9 @@ export function EmployeeForm({
           ))}
         </select>
       </label>
-      <label className="flex flex-col gap-1 text-sm font-medium">
+      <label className="flex flex-col gap-1 text-xs text-ink-2">
         Jadwal
-        <select name="scheduleId" required defaultValue={scheduleId ?? ""} className="rounded-md border px-3 py-2 font-normal dark:border-zinc-700 dark:bg-zinc-900">
+        <select name="scheduleId" required defaultValue={scheduleId ?? ""} className="field font-normal">
           <option value="">Pilih jadwal</option>
           {schedules.map((schedule) => (
             <option key={schedule.id} value={schedule.id}>
@@ -85,7 +85,7 @@ export function EmployeeForm({
         <input type="checkbox" name="isActive" defaultChecked={isActive} />
         Aktif
       </label>
-      <button type="submit" disabled={pending} className="self-start rounded-md bg-zinc-900 px-3 py-2 text-sm text-white disabled:opacity-60 dark:bg-zinc-100 dark:text-zinc-900">
+      <button type="submit" disabled={pending} className="btn btn-primary self-start disabled:opacity-60">
         {pending ? "Menyimpan..." : "Simpan"}
       </button>
     </form>

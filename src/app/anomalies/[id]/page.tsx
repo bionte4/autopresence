@@ -42,7 +42,7 @@ async function AnomalyDetail({ params }: { params: Promise<{ id: string }> }) {
       </p>
       <p>{anomaly.message}</p>
       <DiffTable details={anomaly.details} />
-      <p className="text-sm text-zinc-600 dark:text-zinc-400">
+      <p className="text-sm text-ink-2">
         {anomaly.employeeName ?? "Tanpa pegawai"}
         {anomaly.date ? ` · ${formatCalendarDate(anomaly.date)}` : ""} · {formatDateTime(anomaly.createdAt)}
       </p>

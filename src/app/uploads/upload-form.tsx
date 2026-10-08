@@ -35,15 +35,15 @@ export function UploadForm() {
   return (
     <form action={onSubmit} className="panel grid gap-3">
       {error ? (
-        <p role="alert" className="text-sm text-red-700">
+        <p role="alert" className="text-sm text-danger">
           {error}
         </p>
       ) : null}
-      <label className="flex flex-col gap-1 text-sm font-medium">
+      <label className="flex flex-col gap-1 text-xs text-ink-2">
         Berkas laporan
-        <input name="file" type="file" accept=".xlsx" required className="font-normal" />
+        <input name="file" type="file" accept=".xlsx" required className="field font-normal file:mr-3 file:rounded-md file:border-0 file:bg-primary-soft file:px-3 file:py-1 file:text-sm file:font-semibold file:text-primary" />
       </label>
-      <label className="flex flex-col gap-1 text-sm font-medium">
+      <label className="flex flex-col gap-1 text-xs text-ink-2">
         Jenis periode
         <select name="granularity" defaultValue="MONTHLY" className="field font-normal">
           <option value="DAILY">Harian</option>

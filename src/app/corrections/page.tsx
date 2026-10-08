@@ -63,37 +63,37 @@ async function CorrectionsContent({
       {canProposeCorrection(user) ? (
         <section className="flex flex-col gap-3">
           <h2 className="text-lg font-semibold">Ajukan koreksi</h2>
-          <p className="text-sm text-zinc-600">Kosongkan jam jika tidak diubah. Isi minimal satu nilai baru dan alasan.</p>
+          <p className="text-sm text-ink-2">Kosongkan jam jika tidak diubah. Isi minimal satu nilai baru dan alasan.</p>
           <CorrectionForm records={data.records} />
         </section>
       ) : null}
-      <form className="grid gap-3 sm:grid-cols-3" action="/corrections">
-        <label className="flex flex-col gap-1 text-sm">
+      <form className="panel grid items-end gap-3 sm:grid-cols-3" action="/corrections">
+        <label className="flex flex-col gap-1 text-xs text-ink-2">
           Cari
-          <input name="q" defaultValue={query.q} className="rounded-md border px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900" />
+          <input name="q" defaultValue={query.q} className="field font-normal" />
         </label>
-        <label className="flex flex-col gap-1 text-sm">
+        <label className="flex flex-col gap-1 text-xs text-ink-2">
           Status
-          <select name="status" defaultValue={query.status ?? ""} className="rounded-md border px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900">
+          <select name="status" defaultValue={query.status ?? ""} className="field font-normal">
             <option value="">Semua</option>
             <option value="PENDING">Menunggu</option>
             <option value="APPROVED">Disetujui</option>
             <option value="REJECTED">Ditolak</option>
           </select>
         </label>
-        <button type="submit" className="self-end rounded-md border px-3 py-2 text-sm">Terapkan</button>
+        <button type="submit" className="btn self-end">Terapkan</button>
       </form>
       {data.total === 0 ? (
-        <p className="rounded-md border border-dashed px-4 py-8 text-center text-sm text-zinc-600">Belum ada koreksi.</p>
+        <p className="rounded-xl border border-dashed border-line px-4 py-8 text-center text-sm text-ink-2">Belum ada koreksi.</p>
       ) : (
-        <ul className="divide-y divide-zinc-200 dark:divide-zinc-800">
+        <ul className="divide-y divide-line overflow-hidden rounded-xl border border-line bg-surface">
           {data.items.map((item) => (
             <li key={item.id} className="flex flex-col gap-1 py-3 text-sm sm:flex-row sm:items-center sm:justify-between">
               <span>
-                <span className="mr-2 rounded bg-zinc-200 px-2 py-0.5 text-xs font-medium dark:bg-zinc-800">{STATUS_LABEL[item.status]}</span>
+                <span className="mr-2 rounded-full bg-surface-2 px-2 py-0.5 text-xs font-medium">{STATUS_LABEL[item.status]}</span>
                 {item.employeeName ?? "Pegawai"}
                 {item.date ? ` · ${formatCalendarDate(item.date)}` : ""}
-                <span className="block text-zinc-600 dark:text-zinc-400">{item.reason}</span>
+                <span className="block text-ink-2">{item.reason}</span>
               </span>
               <Link href={`/corrections/${item.id}`} className="underline">Detail</Link>
             </li>

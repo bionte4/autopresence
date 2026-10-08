@@ -58,7 +58,7 @@ async function DashboardContent({
     if (error instanceof ZodError) {
       return (
         <MasterFrame title="Dasbor" user={user}>
-          <p role="alert" className="text-sm text-red-700">
+          <p role="alert" className="text-sm text-danger">
             Filter periode tidak valid. Gunakan tanggal dan rentang paling lama 366 hari.
           </p>
         </MasterFrame>
@@ -187,9 +187,9 @@ async function DashboardContent({
       </dl>
 
       {data.comparison && data.compare ? (
-        <section className="rounded-md border px-3 py-3 text-sm dark:border-zinc-800">
+        <section className="rounded-xl border border-line bg-surface px-4 py-3 text-sm">
           <h2 className="font-medium">Perbandingan {formatCalendarDate(data.compare.from)} – {formatCalendarDate(data.compare.to)}</h2>
-          <p className="mt-1 text-zinc-600 dark:text-zinc-400">
+          <p className="mt-1 text-ink-2">
             {data.comparison.lateEvents} kejadian terlambat ({formatMinutes(data.comparison.lateMinutes)}), selisih{" "}
             {data.comparison.lateEvents - data.kpis.lateEvents} kejadian terhadap periode ini.
           </p>
@@ -264,7 +264,7 @@ async function DashboardContent({
           <Heatmap cells={data.heatmap} />
         </section>
       ) : (
-        <p className="text-sm text-zinc-600 dark:text-zinc-400">Pilih satu pegawai untuk melihat kalender keterlambatan.</p>
+        <p className="text-sm text-ink-2">Pilih satu pegawai untuk melihat kalender keterlambatan.</p>
       )}
 
       <div className="flex items-center justify-between gap-3">
@@ -279,7 +279,7 @@ async function DashboardContent({
         <div className="overflow-x-auto rounded-xl border border-line bg-surface">
           <table className="w-full text-left text-sm">
             <thead>
-              <tr className="border-b dark:border-zinc-800">
+              <tr className="border-b border-line">
                 <th className="py-(--row-pad) pr-3 font-medium">Nama</th>
                 <th className="py-(--row-pad) pr-3 font-medium">Telat</th>
                 <th className="py-(--row-pad) pr-3 font-medium">Total</th>
@@ -289,12 +289,12 @@ async function DashboardContent({
             </thead>
             <tbody>
               {data.rows.map((row) => (
-                <tr key={row.employeeId} className="border-b dark:border-zinc-800">
+                <tr key={row.employeeId} className="border-b border-line">
                   <td className="py-(--row-pad) pr-3">
                     <Link href={`/dashboard/pegawai/${row.employeeId}?from=${data.period.from}&to=${data.period.to}`} className="underline">
                       {row.name}
                     </Link>
-                    <span className="block text-xs text-zinc-500">{row.departmentName ?? "Tanpa departemen"}</span>
+                    <span className="block text-xs text-ink-2">{row.departmentName ?? "Tanpa departemen"}</span>
                   </td>
                   <td className="py-(--row-pad) pr-3">{row.lateCount}</td>
                   <td className="py-(--row-pad) pr-3">{formatMinutes(row.lateMinutes)}</td>

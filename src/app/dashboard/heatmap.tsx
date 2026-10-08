@@ -3,10 +3,10 @@ import { formatCalendarDate, formatMinutes } from "@/lib/format";
 const WEEKDAYS = ["Sn", "Sl", "Rb", "Km", "Jm", "Sb", "Mg"];
 
 function tone(minutes: number): string {
-  if (minutes <= 0) return "bg-zinc-100 dark:bg-zinc-800";
-  if (minutes <= 60) return "bg-amber-300 dark:bg-amber-700";
-  if (minutes <= 120) return "bg-orange-400 dark:bg-orange-600";
-  return "bg-red-500 dark:bg-red-700";
+  if (minutes <= 0) return "bg-surface-2 text-ink-2";
+  if (minutes <= 60) return "bg-warn-soft text-warn";
+  if (minutes <= 120) return "bg-warn-soft text-ink ring-1 ring-warn";
+  return "bg-danger-soft text-danger";
 }
 
 function mondayIndex(iso: string): number {
@@ -19,7 +19,7 @@ export function Heatmap({ cells }: { cells: Array<{ date: string; lateMinutes: n
   const pad = mondayIndex(cells[0].date);
   return (
     <div className="flex flex-col gap-2">
-      <div className="grid grid-cols-7 gap-1 text-center text-xs text-zinc-500">
+      <div className="grid grid-cols-7 gap-1 text-center text-xs text-ink-2">
         {WEEKDAYS.map((day) => (
           <span key={day}>{day}</span>
         ))}

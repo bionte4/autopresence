@@ -44,17 +44,17 @@ async function NotificationsContent({
 
   return (
     <MasterFrame title="Notifikasi" user={user}>
-      <p className="text-sm text-zinc-600 dark:text-zinc-400">{data.unread} belum dibaca</p>
+      <p className="text-sm text-ink-2">{data.unread} belum dibaca</p>
       {data.unread > 0 ? <MarkReadButton /> : null}
       {data.total === 0 ? (
-        <p className="rounded-md border border-dashed px-4 py-8 text-center text-sm text-zinc-600">Belum ada notifikasi.</p>
+        <p className="rounded-xl border border-dashed border-line px-4 py-8 text-center text-sm text-ink-2">Belum ada notifikasi.</p>
       ) : (
-        <ul className="divide-y divide-zinc-200 dark:divide-zinc-800">
+        <ul className="divide-y divide-line overflow-hidden rounded-xl border border-line bg-surface">
           {data.items.map((item) => (
             <li key={item.id} className="py-3 text-sm">
-              <p className={item.readAt ? "text-zinc-500" : "font-medium"}>{item.title}</p>
+              <p className={item.readAt ? "text-ink-2" : "font-medium"}>{item.title}</p>
               <p>{item.body}</p>
-              <p className="text-xs text-zinc-500">{formatDateTime(item.createdAt)}</p>
+              <p className="text-xs text-ink-2">{formatDateTime(item.createdAt)}</p>
               {item.anomalyId ? (
                 <Link href={`/anomalies/${item.anomalyId}`} className="underline">Buka anomali</Link>
               ) : null}

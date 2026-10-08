@@ -64,7 +64,7 @@ async function UploadsContent({
       {result.data.items.length === 0 ? (
         <EmptyState title="Belum ada laporan. Unggah laporan pertama untuk melihat perhitungan keterlambatan." />
       ) : (
-        <ul className="divide-y divide-zinc-200 dark:divide-zinc-800">
+        <ul className="divide-y divide-line overflow-hidden rounded-xl border border-line bg-surface">
           {result.data.items.map((item) => (
             <li key={item.id} className="flex items-center justify-between gap-3 py-3">
               <span>

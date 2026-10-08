@@ -26,8 +26,16 @@ export function DensityToggle() {
   }
 
   return (
-    <button type="button" className="btn btn-ghost" aria-pressed={compact} onClick={apply} suppressHydrationWarning>
-      {compact ? "Ringkas" : "Nyaman"}
+    <button
+      type="button"
+      className="btn btn-ghost px-2 sm:px-3"
+      aria-pressed={compact}
+      aria-label={compact ? "Kepadatan ringkas" : "Kepadatan nyaman"}
+      onClick={apply}
+      suppressHydrationWarning
+    >
+      <span className="sm:hidden">{compact ? "36" : "48"}</span>
+      <span className="hidden sm:inline">{compact ? "Ringkas" : "Nyaman"}</span>
     </button>
   );
 }

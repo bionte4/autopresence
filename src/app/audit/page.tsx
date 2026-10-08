@@ -47,7 +47,7 @@ async function AuditContent({
       <header className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Audit log</h1>
-          <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
+          <p className="mt-2 text-sm text-ink-2">
             Catatan perubahan yang dirantai dengan hash. Entri tidak dapat diubah dari aplikasi.
           </p>
         </div>
@@ -60,14 +60,14 @@ async function AuditContent({
       </header>
       <VerifyButton />
       {data.items.length === 0 ? (
-        <p className="rounded-md border border-dashed border-zinc-300 px-4 py-8 text-center text-sm text-zinc-600 dark:border-zinc-700">
+        <p className="rounded-xl border border-dashed border-line px-4 py-8 text-center text-sm text-ink-2">
           Belum ada catatan audit.
         </p>
       ) : (
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto rounded-xl border border-line bg-surface">
           <table className="w-full min-w-[40rem] text-left text-sm">
             <thead>
-              <tr className="border-b border-zinc-200 dark:border-zinc-800">
+              <tr className="border-b border-line">
                 <th className="px-2 py-2 font-medium">Waktu</th>
                 <th className="px-2 py-2 font-medium">Aksi</th>
                 <th className="px-2 py-2 font-medium">Entitas</th>
@@ -76,7 +76,7 @@ async function AuditContent({
             </thead>
             <tbody>
               {data.items.map((item) => (
-                <tr key={item.id} className="border-b border-zinc-100 dark:border-zinc-900">
+                <tr key={item.id} className="border-b border-line">
                   <td className="px-2 py-2 whitespace-nowrap">{formatDateTime(item.createdAt)}</td>
                   <td className="px-2 py-2">{item.action}</td>
                   <td className="px-2 py-2">{item.entity}</td>

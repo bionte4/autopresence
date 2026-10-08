@@ -100,12 +100,12 @@ export function AppShell({
         </nav>
       </aside>
       <div className="sm:pl-[72px] lg:pl-60">
-        <header className="flex h-(--bar) items-center justify-between gap-3 border-b border-line bg-surface px-4">
-          <p className="text-sm font-semibold sm:hidden">Absensi Monitor</p>
+        <header className="flex h-(--bar) items-center gap-2 border-b border-line bg-surface px-3 sm:px-4">
+          <p className="min-w-0 truncate text-sm font-semibold sm:hidden">Absensi Monitor</p>
           <button type="button" className="btn btn-ghost hidden sm:inline-flex" onClick={() => setPaletteOpen(true)}>
             Cari halaman
           </button>
-          <div className="ml-auto flex items-center gap-1">
+          <div className="ml-auto flex shrink-0 items-center">
             {showBell ? <NotificationBell /> : null}
             <DensityToggle />
             <ThemeToggle />

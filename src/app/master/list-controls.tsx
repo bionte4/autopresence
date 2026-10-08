@@ -22,18 +22,14 @@ export function ListControls({
   const nextDirection = direction === "asc" ? "desc" : "asc";
   return (
     <div className="flex flex-col gap-4">
-      <form className="flex flex-col gap-2 sm:flex-row" action={basePath}>
-        <label className="flex flex-1 flex-col gap-1 text-sm">
+      <form className="flex flex-col gap-2 sm:flex-row sm:items-end" action={basePath}>
+        <label className="flex flex-1 flex-col gap-1 text-xs text-ink-2">
           Cari
-          <input
-            name="q"
-            defaultValue={q}
-            className="rounded-md border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900"
-          />
+          <input name="q" defaultValue={q} className="field" />
         </label>
         <input type="hidden" name="sort" value={sort} />
         <input type="hidden" name="direction" value={direction} />
-        <button type="submit" className="self-end rounded-md border px-3 py-2 text-sm">
+        <button type="submit" className="btn">
           Terapkan
         </button>
       </form>

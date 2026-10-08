@@ -11,7 +11,7 @@ export function MarkReadButton() {
     <button
       type="button"
       disabled={pending}
-      className="self-start rounded-md border px-3 py-2 text-sm"
+      className="btn self-start"
       onClick={async () => {
         setPending(true);
         await fetch("/api/notifications/read", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });

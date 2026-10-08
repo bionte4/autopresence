@@ -41,29 +41,29 @@ export function ScheduleForm({
   }
 
   return (
-    <form action={onSubmit} className="grid gap-3 rounded-md border border-zinc-200 p-4 dark:border-zinc-800">
+    <form action={onSubmit} className="panel grid gap-3">
       {error ? (
-        <p role="alert" className="text-sm text-red-700">
+        <p role="alert" className="text-sm text-danger">
           {error}
         </p>
       ) : null}
-      <label className="flex flex-col gap-1 text-sm font-medium">
+      <label className="flex flex-col gap-1 text-xs text-ink-2">
         Nama
-        <input name="name" required defaultValue={name} className="rounded-md border px-3 py-2 font-normal dark:border-zinc-700 dark:bg-zinc-900" />
+        <input name="name" required defaultValue={name} className="field font-normal" />
       </label>
-      <label className="flex flex-col gap-1 text-sm font-medium">
+      <label className="flex flex-col gap-1 text-xs text-ink-2">
         Jam masuk
-        <input name="start" type="time" required defaultValue={startMin === undefined ? "08:00" : formatMinutes(startMin)} className="rounded-md border px-3 py-2 font-normal dark:border-zinc-700 dark:bg-zinc-900" />
+        <input name="start" type="time" required defaultValue={startMin === undefined ? "08:00" : formatMinutes(startMin)} className="field font-normal" />
       </label>
-      <label className="flex flex-col gap-1 text-sm font-medium">
+      <label className="flex flex-col gap-1 text-xs text-ink-2">
         Jam pulang
-        <input name="end" type="time" required defaultValue={endMin === undefined ? "17:05" : formatMinutes(endMin)} className="rounded-md border px-3 py-2 font-normal dark:border-zinc-700 dark:bg-zinc-900" />
+        <input name="end" type="time" required defaultValue={endMin === undefined ? "17:05" : formatMinutes(endMin)} className="field font-normal" />
       </label>
-      <label className="flex flex-col gap-1 text-sm font-medium">
+      <label className="flex flex-col gap-1 text-xs text-ink-2">
         Toleransi terlambat (menit)
-        <input name="lateToleranceMin" type="number" min={0} required defaultValue={lateToleranceMin ?? 0} className="rounded-md border px-3 py-2 font-normal dark:border-zinc-700 dark:bg-zinc-900" />
+        <input name="lateToleranceMin" type="number" min={0} required defaultValue={lateToleranceMin ?? 0} className="field font-normal" />
       </label>
-      <button type="submit" disabled={pending} className="self-start rounded-md bg-zinc-900 px-3 py-2 text-sm text-white disabled:opacity-60 dark:bg-zinc-100 dark:text-zinc-900">
+      <button type="submit" disabled={pending} className="btn btn-primary self-start disabled:opacity-60">
         {pending ? "Menyimpan..." : "Simpan"}
       </button>
     </form>

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Bell } from "lucide-react";
 import { useEffect, useState } from "react";
 
 export function NotificationBell() {
@@ -25,11 +26,12 @@ export function NotificationBell() {
   return (
     <Link
       href="/notifications"
-      className="inline-flex min-h-11 items-center gap-2 rounded-full px-3 text-sm font-semibold text-ink"
+      className="inline-flex min-h-11 items-center gap-2 rounded-full px-2 text-sm font-semibold text-ink sm:px-3"
       aria-live="polite"
       aria-label={unread > 0 ? `Notifikasi, ${unread} belum dibaca` : "Notifikasi"}
     >
-      Notifikasi
+      <Bell className="size-4 sm:hidden" strokeWidth={1.75} aria-hidden />
+      <span className="hidden sm:inline">Notifikasi</span>
       {unread > 0 ? <span className="rounded-full bg-primary-soft px-2 py-0.5 text-xs text-primary">{unread}</span> : null}
     </Link>
   );

@@ -38,19 +38,19 @@ export function ProjectForm({
   }
 
   return (
-    <form action={onSubmit} className="grid gap-3 rounded-md border border-zinc-200 p-4 dark:border-zinc-800">
+    <form action={onSubmit} className="panel grid gap-3">
       {error ? (
-        <p role="alert" className="text-sm text-red-700">
+        <p role="alert" className="text-sm text-danger">
           {error}
         </p>
       ) : null}
-      <label className="flex flex-col gap-1 text-sm font-medium">
+      <label className="flex flex-col gap-1 text-xs text-ink-2">
         Pelanggan
         <select
           name="customerId"
           required
           defaultValue={customerId ?? ""}
-          className="rounded-md border px-3 py-2 font-normal dark:border-zinc-700 dark:bg-zinc-900"
+          className="field font-normal"
         >
           <option value="">Pilih pelanggan</option>
           {customers.map((customer) => (
@@ -60,16 +60,16 @@ export function ProjectForm({
           ))}
         </select>
       </label>
-      <label className="flex flex-col gap-1 text-sm font-medium">
+      <label className="flex flex-col gap-1 text-xs text-ink-2">
         Nama proyek
         <input
           name="name"
           required
           defaultValue={name}
-          className="rounded-md border px-3 py-2 font-normal dark:border-zinc-700 dark:bg-zinc-900"
+          className="field font-normal"
         />
       </label>
-      <button type="submit" disabled={pending} className="self-start rounded-md bg-zinc-900 px-3 py-2 text-sm text-white disabled:opacity-60 dark:bg-zinc-100 dark:text-zinc-900">
+      <button type="submit" disabled={pending} className="btn btn-primary self-start disabled:opacity-60">
         {pending ? "Menyimpan..." : "Simpan"}
       </button>
     </form>

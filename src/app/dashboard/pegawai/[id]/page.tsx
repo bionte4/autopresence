@@ -54,7 +54,7 @@ async function EmployeeContent({
     if (error instanceof ZodError) {
       return (
         <MasterFrame title="Detail pegawai" user={user}>
-          <p role="alert" className="text-sm text-red-700">
+          <p role="alert" className="text-sm text-danger">
             Periode tidak valid.
           </p>
         </MasterFrame>
@@ -71,7 +71,7 @@ async function EmployeeContent({
 
   return (
     <MasterFrame title={data.employee.name} user={user}>
-      <p className="text-sm text-zinc-600 dark:text-zinc-400">
+      <p className="text-sm text-ink-2">
         PIN {data.employee.pin} · {data.employee.departmentName ?? "Tanpa departemen"} · {formatCalendarDate(data.period.from)} s.d.{" "}
         {formatCalendarDate(data.period.to)}
       </p>
@@ -79,16 +79,16 @@ async function EmployeeContent({
         Kembali ke dasbor
       </Link>
       <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-        <li className="rounded-md border px-3 py-3 dark:border-zinc-800">
-          <p className="text-xs text-zinc-500">Kejadian terlambat</p>
+        <li className="rounded-xl border border-line bg-surface px-4 py-3">
+          <p className="text-xs text-ink-2">Kejadian terlambat</p>
           <p className="text-xl font-semibold">{data.kpis.lateEvents}</p>
         </li>
-        <li className="rounded-md border px-3 py-3 dark:border-zinc-800">
-          <p className="text-xs text-zinc-500">Total jam telat</p>
+        <li className="rounded-xl border border-line bg-surface px-4 py-3">
+          <p className="text-xs text-ink-2">Total jam telat</p>
           <p className="text-xl font-semibold">{formatMinutes(data.kpis.lateMinutes)}</p>
         </li>
-        <li className="rounded-md border px-3 py-3 dark:border-zinc-800">
-          <p className="text-xs text-zinc-500">Kurang presensi</p>
+        <li className="rounded-xl border border-line bg-surface px-4 py-3">
+          <p className="text-xs text-ink-2">Kurang presensi</p>
           <p className="text-xl font-semibold">{data.kpis.missingPunch}</p>
         </li>
       </ul>
@@ -97,12 +97,12 @@ async function EmployeeContent({
         <Heatmap cells={data.heatmap} />
       </section>
       {data.days.length === 0 ? (
-        <p className="rounded-md border border-dashed px-4 py-8 text-center text-sm text-zinc-600">Tidak ada baris absensi pada periode ini.</p>
+        <p className="rounded-xl border border-dashed border-line px-4 py-8 text-center text-sm text-ink-2">Tidak ada baris absensi pada periode ini.</p>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead>
-              <tr className="border-b dark:border-zinc-800">
+              <tr className="border-b border-line">
                 <th className="py-2 pr-3 font-medium">Tanggal</th>
                 <th className="py-2 pr-3 font-medium">Masuk</th>
                 <th className="py-2 pr-3 font-medium">Keluar</th>
@@ -112,7 +112,7 @@ async function EmployeeContent({
             </thead>
             <tbody>
               {data.days.map((day) => (
-                <tr key={day.date} className="border-b dark:border-zinc-800">
+                <tr key={day.date} className="border-b border-line">
                   <td className="py-2 pr-3">{formatCalendarDate(day.date)}</td>
                   <td className="py-2 pr-3">{clock(day.clockInMin)}</td>
                   <td className="py-2 pr-3">{clock(day.clockOutMin)}</td>

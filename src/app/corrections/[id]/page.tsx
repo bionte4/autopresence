@@ -36,14 +36,14 @@ async function CorrectionDetail({ params }: { params: Promise<{ id: string }> })
   return (
     <MasterFrame title="Detail koreksi" user={user}>
       <dl className="grid gap-2 text-sm">
-        <div><dt className="text-zinc-500">Status</dt><dd>{STATUS_LABEL[row.status]}</dd></div>
-        <div><dt className="text-zinc-500">Pegawai</dt><dd>{row.employeeName}{row.date ? ` · ${formatCalendarDate(row.date)}` : ""}</dd></div>
-        <div><dt className="text-zinc-500">Alasan</dt><dd>{row.reason}</dd></div>
-        <div><dt className="text-zinc-500">Jam masuk</dt><dd>{clockLabel("clockInMin" in changes ? changes.clockInMin : undefined)}</dd></div>
-        <div><dt className="text-zinc-500">Jam keluar</dt><dd>{clockLabel("clockOutMin" in changes ? changes.clockOutMin : undefined)}</dd></div>
-        {"note" in changes ? <div><dt className="text-zinc-500">Keterangan</dt><dd>{String(changes.note ?? "kosong")}</dd></div> : null}
-        {row.evidenceNote ? <div><dt className="text-zinc-500">Bukti</dt><dd>{row.evidenceNote}</dd></div> : null}
-        {row.reviewNote ? <div><dt className="text-zinc-500">Catatan keputusan</dt><dd>{row.reviewNote}</dd></div> : null}
+        <div><dt className="text-ink-2">Status</dt><dd>{STATUS_LABEL[row.status]}</dd></div>
+        <div><dt className="text-ink-2">Pegawai</dt><dd>{row.employeeName}{row.date ? ` · ${formatCalendarDate(row.date)}` : ""}</dd></div>
+        <div><dt className="text-ink-2">Alasan</dt><dd>{row.reason}</dd></div>
+        <div><dt className="text-ink-2">Jam masuk</dt><dd>{clockLabel("clockInMin" in changes ? changes.clockInMin : undefined)}</dd></div>
+        <div><dt className="text-ink-2">Jam keluar</dt><dd>{clockLabel("clockOutMin" in changes ? changes.clockOutMin : undefined)}</dd></div>
+        {"note" in changes ? <div><dt className="text-ink-2">Keterangan</dt><dd>{String(changes.note ?? "kosong")}</dd></div> : null}
+        {row.evidenceNote ? <div><dt className="text-ink-2">Bukti</dt><dd>{row.evidenceNote}</dd></div> : null}
+        {row.reviewNote ? <div><dt className="text-ink-2">Catatan keputusan</dt><dd>{row.reviewNote}</dd></div> : null}
       </dl>
       {row.status === "PENDING" && can(user, "correction.review") ? <ReviewForm id={row.id} /> : null}
     </MasterFrame>

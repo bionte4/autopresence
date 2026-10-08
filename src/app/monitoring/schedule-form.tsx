@@ -17,8 +17,8 @@ export function ScheduleForm({
   id,
   granularity = "DAILY",
   cutoffTime = "10:00",
-  dayOfWeek = 5,
-  dayOfMonth = 10,
+  dayOfWeek = null,
+  dayOfMonth = null,
   enabled = true,
 }: {
   id?: string;
@@ -30,6 +30,7 @@ export function ScheduleForm({
 }) {
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
+  const [kind, setKind] = useState(granularity);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
@@ -60,46 +61,66 @@ export function ScheduleForm({
       return;
     }
     if (id) router.push("/monitoring");
-    else formRef.current?.reset();
+    else {
+      formRef.current?.reset();
+      setKind("DAILY");
+    }
     router.refresh();
   }
 
   return (
     <form
       ref={formRef}
-      className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3"
+      className="panel grid gap-3 sm:grid-cols-2 lg:grid-cols-3"
       onSubmit={(event) => void onSubmit(event)}
     >
-      <label className="flex flex-col gap-1 text-sm">
+      <label className="flex flex-col gap-1 text-xs text-ink-2">
         Jenis
-        <select name="granularity" defaultValue={granularity} className="rounded-md border px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900">
+        <select
+          name="granularity"
+          value={kind}
+          onChange={(event) => setKind(event.target.value as "DAILY" | "WEEKLY" | "MONTHLY")}
+          className="field font-normal"
+        >
           <option value="DAILY">Harian</option>
           <option value="WEEKLY">Mingguan</option>
           <option value="MONTHLY">Bulanan</option>
         </select>
       </label>
-      <label className="flex flex-col gap-1 text-sm">
+      <label className="flex flex-col gap-1 text-xs text-ink-2">
         Batas waktu (WIB)
-        <input name="cutoffTime" type="time" defaultValue={cutoffTime} required className="rounded-md border px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900" />
+        <input name="cutoffTime" type="time" defaultValue={cutoffTime} required className="field font-normal" />
       </label>
-      <label className="flex flex-col gap-1 text-sm">
-        Hari mingguan
-        <select name="dayOfWeek" defaultValue={String(dayOfWeek ?? 5)} className="rounded-md border px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900">
-          {WEEKDAYS.map(([value, label]) => (
-            <option key={value} value={value}>{label}</option>
-          ))}
-        </select>
-      </label>
-      <label className="flex flex-col gap-1 text-sm">
-        Tanggal bulanan
-        <input name="dayOfMonth" type="number" min={1} max={31} defaultValue={dayOfMonth ?? 10} className="rounded-md border px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900" />
-      </label>
+      {kind === "WEEKLY" ? (
+        <label className="flex flex-col gap-1 text-xs text-ink-2">
+          Hari mingguan
+          <select name="dayOfWeek" defaultValue={String(dayOfWeek ?? 5)} required className="field font-normal">
+            {WEEKDAYS.map(([value, label]) => (
+              <option key={value} value={value}>{label}</option>
+            ))}
+          </select>
+        </label>
+      ) : null}
+      {kind === "MONTHLY" ? (
+        <label className="flex flex-col gap-1 text-xs text-ink-2">
+          Tanggal bulanan
+          <input
+            name="dayOfMonth"
+            type="number"
+            min={1}
+            max={31}
+            required
+            defaultValue={dayOfMonth ?? ""}
+            className="field font-normal"
+          />
+        </label>
+      ) : null}
       <label className="flex items-center gap-2 self-end text-sm">
         <input name="enabled" type="checkbox" defaultChecked={enabled} />
         Aktif
       </label>
-      {error ? <p role="alert" className="text-sm text-red-700 sm:col-span-2">{error}</p> : null}
-      <button type="submit" disabled={pending} className="self-end rounded-md border px-3 py-2 text-sm">{id ? "Simpan perubahan" : "Simpan jadwal"}</button>
+      {error ? <p role="alert" className="text-sm text-danger sm:col-span-2">{error}</p> : null}
+      <button type="submit" disabled={pending} className="btn self-end">{id ? "Simpan perubahan" : "Simpan jadwal"}</button>
     </form>
   );
 }
