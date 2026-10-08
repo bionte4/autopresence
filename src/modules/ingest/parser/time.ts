@@ -55,16 +55,47 @@ export function parseDisplayDate(raw: string): string | null | "invalid" {
   return date ?? "invalid";
 }
 
-export function parsePeriod(raw: string): { start: string; end: string } | null {
-  const match = /^:?\s*(\d{1,2})\s+([A-Za-z]+)\s+-\s+(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})\s*$/.exec(raw.trim());
-  if (!match) return null;
-  const endMonth = MONTHS[match[4].toLowerCase()];
-  const startMonth = MONTHS[match[2].toLowerCase()];
-  if (!endMonth || !startMonth) return null;
-  const endYear = Number(match[5]);
-  const startYear = startMonth > endMonth ? endYear - 1 : endYear;
-  const start = calendarDate(startYear, startMonth, Number(match[1]));
-  const end = calendarDate(endYear, endMonth, Number(match[3]));
+function monthNumber(raw: string): number | null {
+  return MONTHS[raw.toLowerCase()] ?? null;
+}
+
+function boundedPeriod(start: string | null, end: string | null): { start: string; end: string } | null {
   if (!start || !end || start > end) return null;
   return { start, end };
+}
+
+/**
+ * Daily exports print a single date (`7 Okt 2026`). Weekly/monthly print a range,
+ * sometimes with a year on both sides. Guessing unknown layouts is not allowed.
+ */
+export function parsePeriod(raw: string): { start: string; end: string } | null {
+  const value = raw.trim().replace(/^:\s*/, "");
+  const dualYear = /^(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})\s+-\s+(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})$/.exec(value);
+  if (dualYear) {
+    const startMonth = monthNumber(dualYear[2]);
+    const endMonth = monthNumber(dualYear[5]);
+    if (!startMonth || !endMonth) return null;
+    return boundedPeriod(
+      calendarDate(Number(dualYear[3]), startMonth, Number(dualYear[1])),
+      calendarDate(Number(dualYear[6]), endMonth, Number(dualYear[4])),
+    );
+  }
+  const range = /^(\d{1,2})\s+([A-Za-z]+)\s+-\s+(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})$/.exec(value);
+  if (range) {
+    const startMonth = monthNumber(range[2]);
+    const endMonth = monthNumber(range[4]);
+    if (!startMonth || !endMonth) return null;
+    const endYear = Number(range[5]);
+    const startYear = startMonth > endMonth ? endYear - 1 : endYear;
+    return boundedPeriod(
+      calendarDate(startYear, startMonth, Number(range[1])),
+      calendarDate(endYear, endMonth, Number(range[3])),
+    );
+  }
+  const single = /^(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})$/.exec(value);
+  if (!single) return null;
+  const month = monthNumber(single[2]);
+  if (!month) return null;
+  const date = calendarDate(Number(single[3]), month, Number(single[1]));
+  return date ? { start: date, end: date } : null;
 }

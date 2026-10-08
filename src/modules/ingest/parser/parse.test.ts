@@ -40,6 +40,10 @@ describe("calendar helpers", () => {
     expect(parseDisplayDate("Km, 10 Sep 2026 ")).toBe("2026-09-10");
     expect(parseDisplayDate("bukan tanggal")).toBe("invalid");
     expect(parsePeriod(": 20 Des - 10 Jan 2027")).toEqual({ start: "2026-12-20", end: "2027-01-10" });
+    expect(parsePeriod("7 Okt 2026")).toEqual({ start: "2026-10-07", end: "2026-10-07" });
+    expect(parsePeriod(": 7 Okt 2026")).toEqual({ start: "2026-10-07", end: "2026-10-07" });
+    expect(parsePeriod("1 Okt 2026 - 7 Okt 2026")).toEqual({ start: "2026-10-01", end: "2026-10-07" });
+    expect(parsePeriod("10 Sep - 9 Okt 2026")).toEqual({ start: "2026-09-10", end: "2026-10-09" });
     expect(parsePeriod("tanpa tanggal")).toBeNull();
     expect(inclusiveDays("2026-09-10", "2026-10-09")).toBe(30);
   });
@@ -111,6 +115,23 @@ describe("sample report", () => {
       ["Total 1 Hari", "", "", "", "", "-", "-", "-", "-", "-", "09:05", "09:05"],
     );
     expect(parseSheet([...first, [], ...second]).ok).toBe(false);
+  });
+
+  it("accepts a daily report whose period is a single date", () => {
+    const parsed = parseSheet(
+      block(
+        ": 7 Okt 2026",
+        ": ANDREA RAHMADANISYA",
+        ": 4370",
+        ["Rb, 7 Okt 2026 ", "08:00 ", " 17:05", "06:25", "17:11", "01:34", "-", "-", "00:06", "-", "09:05", "09:05"],
+        ["Total 1 Hari", "", "", "", "", "01:34", "-", "-", "00:06", "-", "09:05", "09:05"],
+      ),
+    );
+    expect(parsed.ok).toBe(true);
+    if (!parsed.ok) return;
+    expect(parsed.report.period).toEqual({ start: "2026-10-07", end: "2026-10-07" });
+    expect(parsed.report.employees[0]?.pin).toBe("4370");
+    expect(parsed.report.employees[0]?.days).toHaveLength(1);
   });
 
   it("keeps an unrecognized note and a year-crossing period", () => {

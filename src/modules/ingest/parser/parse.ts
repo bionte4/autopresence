@@ -128,7 +128,8 @@ function readBlock(
     cursor += 1;
   }
   const period = periodRaw ? parsePeriod(periodRaw) : null;
-  if (!period || !name || !pin) return formatUnknown("Blok pegawai tidak lengkap (periode, nama, atau PIN).");
+  if (!name || !pin) return formatUnknown("Blok pegawai tidak lengkap (nama atau PIN).");
+  if (!period) return formatUnknown("Periode laporan tidak dikenali. Gunakan tanggal tunggal atau rentang hari bulan tahun.");
   if (cursor >= grid.length || !isHeader(grid[cursor])) return formatUnknown("Header laporan tidak dikenali.");
   cursor = nextFilled(grid, cursor + 1);
   if (cursor >= grid.length || !isSubheader(grid[cursor])) return formatUnknown("Subheader laporan tidak dikenali.");
