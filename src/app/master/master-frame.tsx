@@ -23,7 +23,7 @@ export function MasterFrame({
     can(user, "department.manage") ? { href: "/master/departments", label: "Departemen", group: "data" } : null,
     can(user, "employee.manage") ? { href: "/master/employees", label: "Pegawai", group: "data" } : null,
     can(user, "schedule.manage") ? { href: "/master/schedules", label: "Jadwal", group: "data" } : null,
-    can(user, "user.manage") ? { href: "/admin/users", label: "Pengguna", group: "data" } : null,
+    can(user, "user.manage") ? { href: "/admin/users", label: "Akun login", group: "data" } : null,
     can(user, "audit.read") ? { href: "/audit", label: "Audit", group: "audit" } : null,
   ].filter((link): link is ShellLink => link !== null);
 

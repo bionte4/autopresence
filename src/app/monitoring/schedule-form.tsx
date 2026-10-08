@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 const WEEKDAYS = [
   ["1", "Senin"],
@@ -29,40 +29,46 @@ export function ScheduleForm({
   enabled?: boolean;
 }) {
   const router = useRouter();
+  const formRef = useRef<HTMLFormElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
+  async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const formElement = formRef.current;
+    if (!formElement) return;
+    setPending(true);
+    setError(null);
+    const form = new FormData(formElement);
+    const chosen = String(form.get("granularity") ?? "DAILY");
+    const body: Record<string, unknown> = {
+      granularity: chosen,
+      cutoffTime: String(form.get("cutoffTime") || "10:00"),
+      enabled: form.get("enabled") === "on",
+    };
+    if (chosen === "WEEKLY") body.dayOfWeek = Number(form.get("dayOfWeek"));
+    if (chosen === "MONTHLY") body.dayOfMonth = Number(form.get("dayOfMonth"));
+    const response = await fetch(id ? `/api/upload-schedules/${id}` : "/api/upload-schedules", {
+      method: id ? "PATCH" : "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    setPending(false);
+    if (!response.ok) {
+      setError(payload?.error ?? "Jadwal gagal disimpan.");
+      return;
+    }
+    if (id) router.push("/monitoring");
+    else formRef.current?.reset();
+    router.refresh();
+  }
+
   return (
     <form
+      ref={formRef}
       className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3"
-      onSubmit={async (event) => {
-        event.preventDefault();
-        setPending(true);
-        setError(null);
-        const form = new FormData(event.currentTarget);
-        const granularity = String(form.get("granularity") ?? "DAILY");
-        const body: Record<string, unknown> = {
-          granularity,
-          cutoffTime: String(form.get("cutoffTime") || "10:00"),
-          enabled: form.get("enabled") === "on",
-        };
-        if (granularity === "WEEKLY") body.dayOfWeek = Number(form.get("dayOfWeek"));
-        if (granularity === "MONTHLY") body.dayOfMonth = Number(form.get("dayOfMonth"));
-        const response = await fetch(id ? `/api/upload-schedules/${id}` : "/api/upload-schedules", {
-          method: id ? "PATCH" : "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body),
-        });
-        const payload = (await response.json().catch(() => null)) as { error?: string } | null;
-        setPending(false);
-        if (!response.ok) {
-          setError(payload?.error ?? "Jadwal gagal disimpan.");
-          return;
-        }
-        if (id) router.push("/monitoring");
-        else event.currentTarget.reset();
-        router.refresh();
-      }}
+      onSubmit={(event) => void onSubmit(event)}
     >
       <label className="flex flex-col gap-1 text-sm">
         Jenis

@@ -9,6 +9,7 @@ const detail = {
   role: true,
   isActive: true,
   employeeId: true,
+  employee: { select: { name: true, pin: true } },
   managedDepartments: { where: { deletedAt: null }, select: { id: true } },
 } as const;
 
@@ -22,6 +23,8 @@ export async function listUsers(query: ListQuery, db: Db = prisma) {
           OR: [
             { name: { contains: query.q, mode: "insensitive" } },
             { email: { contains: query.q, mode: "insensitive" } },
+            { employee: { name: { contains: query.q, mode: "insensitive" } } },
+            { employee: { pin: { contains: query.q, mode: "insensitive" } } },
           ],
         }
       : {}),
@@ -125,7 +128,7 @@ export async function updateUser(
 export async function softDeleteUser(db: Db, id: string) {
   return db.user.update({
     where: { id },
-    data: { deletedAt: new Date(), isActive: false, managedDepartments: { set: [] } },
+    data: { deletedAt: new Date(), isActive: false, employeeId: null, managedDepartments: { set: [] } },
     select: detail,
   });
 }

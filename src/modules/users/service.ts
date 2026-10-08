@@ -24,6 +24,8 @@ export type UserDto = {
   role: Role;
   isActive: boolean;
   employeeId: string | null;
+  employeeName: string | null;
+  employeePin: string | null;
   managedDepartmentIds: string[];
 };
 
@@ -35,6 +37,8 @@ function toDto(row: UserRow): UserDto {
     role: row.role,
     isActive: row.isActive,
     employeeId: row.employeeId,
+    employeeName: row.employee?.name ?? null,
+    employeePin: row.employee?.pin ?? null,
     managedDepartmentIds: row.managedDepartments.map((department) => department.id),
   };
 }

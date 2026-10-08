@@ -1,7 +1,7 @@
 "use client";
 
 import type { Role } from "@prisma/client";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ROLE_LABEL } from "@/lib/labels";
 import { saveJson } from "@/app/master/save";
@@ -30,6 +30,7 @@ export function UserForm({
   employees: Array<{ id: string; name: string; pin: string }>;
 }) {
   const router = useRouter();
+  const formRef = useRef<HTMLFormElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [selectedRole, setSelectedRole] = useState<Role>(role);
@@ -52,21 +53,26 @@ export function UserForm({
       return;
     }
     if (id) router.refresh();
-    else router.push("/admin/users");
+    else {
+      formRef.current?.reset();
+      setSelectedRole("EMPLOYEE");
+      router.refresh();
+    }
   }
 
   return (
-    <form action={onSubmit} className="grid gap-3 rounded-md border border-zinc-200 p-4 dark:border-zinc-800">
+    <form ref={formRef} action={onSubmit} className="panel grid gap-3 sm:grid-cols-2">
       {error ? <p role="alert" className="text-sm text-red-700">{error}</p> : null}
-      <label className="flex flex-col gap-1 text-sm font-medium">
+      <h2 className="font-semibold sm:col-span-2">{id ? "Ubah akun" : "Akun baru"}</h2>
+      <label className="flex flex-col gap-1 text-xs text-ink-2">
         Nama
-        <input name="name" required defaultValue={name} className="rounded-md border px-3 py-2 font-normal dark:border-zinc-700 dark:bg-zinc-900" />
+        <input name="name" required defaultValue={name} className="field font-normal" />
       </label>
-      <label className="flex flex-col gap-1 text-sm font-medium">
+      <label className="flex flex-col gap-1 text-xs text-ink-2">
         Email
-        <input name="email" type="email" required defaultValue={email} className="rounded-md border px-3 py-2 font-normal dark:border-zinc-700 dark:bg-zinc-900" />
+        <input name="email" type="email" required defaultValue={email} className="field font-normal" />
       </label>
-      <label className="flex flex-col gap-1 text-sm font-medium">
+      <label className="flex flex-col gap-1 text-xs text-ink-2">
         Kata sandi
         <input
           name="password"
@@ -75,16 +81,16 @@ export function UserForm({
           minLength={id ? undefined : 12}
           required={!id}
           placeholder={id ? "Kosongkan jika tidak diubah" : "Minimal 12 karakter"}
-          className="rounded-md border px-3 py-2 font-normal dark:border-zinc-700 dark:bg-zinc-900"
+          className="field font-normal"
         />
       </label>
-      <label className="flex flex-col gap-1 text-sm font-medium">
+      <label className="flex flex-col gap-1 text-xs text-ink-2">
         Peran
         <select
           name="role"
           value={selectedRole}
           onChange={(event) => setSelectedRole(event.target.value as Role)}
-          className="rounded-md border px-3 py-2 font-normal dark:border-zinc-700 dark:bg-zinc-900"
+          className="field font-normal"
         >
           {ROLES.map((item) => (
             <option key={item} value={item}>
@@ -93,9 +99,9 @@ export function UserForm({
           ))}
         </select>
       </label>
-      <label className="flex flex-col gap-1 text-sm font-medium">
+      <label className="flex flex-col gap-1 text-xs text-ink-2 sm:col-span-2">
         Tautan pegawai
-        <select name="employeeId" defaultValue={employeeId ?? ""} className="rounded-md border px-3 py-2 font-normal dark:border-zinc-700 dark:bg-zinc-900">
+        <select name="employeeId" defaultValue={employeeId ?? ""} className="field font-normal">
           <option value="">Tidak ditautkan</option>
           {employees.map((employee) => (
             <option key={employee.id} value={employee.id}>
@@ -105,7 +111,7 @@ export function UserForm({
         </select>
       </label>
       {selectedRole === "MANAGER" ? (
-        <fieldset className="flex flex-col gap-2 text-sm">
+        <fieldset className="flex flex-col gap-2 text-sm sm:col-span-2">
           <legend className="font-medium">Departemen yang dikelola</legend>
           {departments.map((department) => (
             <label key={department.id} className="flex items-center gap-2">
@@ -120,11 +126,11 @@ export function UserForm({
           ))}
         </fieldset>
       ) : null}
-      <label className="flex items-center gap-2 text-sm">
+      <label className="flex items-center gap-2 text-sm sm:col-span-2">
         <input type="checkbox" name="isActive" defaultChecked={isActive} />
         Aktif
       </label>
-      <button type="submit" disabled={pending} className="self-start rounded-md bg-zinc-900 px-3 py-2 text-sm text-white disabled:opacity-60 dark:bg-zinc-100 dark:text-zinc-900">
+      <button type="submit" disabled={pending} className="btn btn-primary sm:col-span-2">
         {pending ? "Menyimpan..." : "Simpan"}
       </button>
     </form>

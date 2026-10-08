@@ -33,10 +33,15 @@ async function EditUser({ params }: { params: Promise<{ id: string }> }) {
   if (!result.ok) notFound();
 
   return (
-    <MasterFrame title="Ubah pengguna" user={user}>
+    <MasterFrame title="Ubah akun login" user={user}>
       <UserForm {...result.data} departments={departments.data} employees={employees.data} />
       {user.id === result.data.id ? null : (
-        <DeleteButton url={`/api/users/${result.data.id}`} label={result.data.name} redirectTo="/admin/users" />
+        <DeleteButton
+          url={`/api/users/${result.data.id}`}
+          label={result.data.name}
+          redirectTo="/admin/users"
+          detail={`Hapus akun ${result.data.email}? Akun ini tidak bisa masuk lagi. Data pegawai yang ditautkan tetap tersimpan.`}
+        />
       )}
     </MasterFrame>
   );

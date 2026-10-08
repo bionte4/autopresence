@@ -16,6 +16,27 @@ const SEED_USERS: ReadonlyArray<{ email: string; name: string; role: Role }> = [
   { email: "employee@local", name: "Pegawai Contoh", role: Role.EMPLOYEE },
 ];
 
+/** Staff from the BI - DIDD roster. Email is local-only so the seed stays free of real addresses. */
+const SEED_STAFF: ReadonlyArray<{ pin: string; name: string }> = [
+  { pin: "4370", name: "ANDREA RAHMADANISYA" },
+  { pin: "4383", name: "ARIE KURNIAWAN" },
+  { pin: "4384", name: "ARSY BAIQ SHAZKYA" },
+  { pin: "4520", name: "BILLY TIGO RAMADHAN" },
+  { pin: "4382", name: "CAROLUS BENNY DWI SETIAWAN" },
+  { pin: "4376", name: "ERNA KARINA" },
+  { pin: "4372", name: "FIRZA VENANDA" },
+  { pin: "4373", name: "GILANG NURDIA YUSUF" },
+  { pin: "4374", name: "M GILANG RIZKY RAMADHAN" },
+  { pin: "4371", name: "REZA PRASETYO AJI" },
+  { pin: "4519", name: "SANDY KURNIAWAN" },
+  { pin: "4369", name: "SOPAN BUKHARI LUBIS" },
+  { pin: "4375", name: "UNGGUL AZHARI RAMADHAN" },
+];
+
+function staffEmail(name: string): string {
+  return `${name.trim().toLowerCase().replace(/\s+/g, ".")}@local`;
+}
+
 async function main(): Promise<void> {
   const seedPassword = process.env.SEED_PASSWORD;
   if (!seedPassword || seedPassword.length < 12) {
@@ -52,6 +73,44 @@ async function main(): Promise<void> {
     update: {},
     create: { name: "Keuangan" },
   });
+
+  const didd = await prisma.department.upsert({
+    where: { name: "BI - DIDD" },
+    update: {},
+    create: { name: "BI - DIDD" },
+  });
+
+  for (const staff of SEED_STAFF) {
+    const employee = await prisma.employee.upsert({
+      where: { pin: staff.pin },
+      update: { name: staff.name, departmentId: didd.id, isActive: true, deletedAt: null },
+      create: {
+        pin: staff.pin,
+        name: staff.name,
+        departmentId: didd.id,
+        scheduleId: schedule.id,
+      },
+    });
+    const email = staffEmail(staff.name);
+    await prisma.user.upsert({
+      where: { email },
+      update: {
+        name: staff.name,
+        role: Role.EMPLOYEE,
+        isActive: true,
+        passwordHash,
+        employeeId: employee.id,
+        deletedAt: null,
+      },
+      create: {
+        email,
+        name: staff.name,
+        role: Role.EMPLOYEE,
+        passwordHash,
+        employeeId: employee.id,
+      },
+    });
+  }
 
   for (const user of SEED_USERS) {
     const managedDepartments =
@@ -108,8 +167,8 @@ async function main(): Promise<void> {
   }
 
   console.log("Seed complete:", {
-    users: SEED_USERS.length,
-    departments: 2,
+    users: SEED_USERS.length + SEED_STAFF.length,
+    departments: 3,
     schedule: schedule.name,
     rules: rules.length,
   });

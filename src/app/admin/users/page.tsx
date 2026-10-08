@@ -4,6 +4,7 @@ import { connection } from "next/server";
 import { forbidden, redirect } from "next/navigation";
 import { ListControls } from "@/app/master/list-controls";
 import { MasterFrame } from "@/app/master/master-frame";
+import { EmptyState } from "@/components/domain/empty-state";
 import { ROLE_LABEL } from "@/lib/labels";
 import { getCurrentUser } from "@/modules/auth/current-user";
 import { departmentChoices } from "@/modules/departments/service";
@@ -54,18 +55,22 @@ async function UsersContent({
   const pageCount = Math.max(1, Math.ceil(result.data.total / result.data.pageSize));
 
   return (
-    <MasterFrame title="Pengguna" user={user}>
+    <MasterFrame title="Akun login" user={user}>
       <UserForm departments={departments.data} employees={employees.data} />
-      {result.data.items.length === 0 ? (
-        <p className="rounded-md border border-dashed px-4 py-8 text-center text-sm">Tidak ada pengguna.</p>
+      {result.data.total === 0 ? (
+        <EmptyState title="Belum ada akun login." />
       ) : (
-        <ul className="divide-y divide-zinc-200 dark:divide-zinc-800">
+        <ul className="divide-y divide-line rounded-xl border border-line bg-surface">
           {result.data.items.map((item) => (
-            <li key={item.id} className="flex items-center justify-between gap-3 py-3">
+            <li key={item.id} className="flex flex-col gap-1 px-4 py-3 text-sm sm:flex-row sm:items-center sm:justify-between">
               <span>
-                {item.name} · {item.email} · {ROLE_LABEL[item.role]}
+                <span className="font-semibold">{item.name}</span> · {item.email} · {ROLE_LABEL[item.role]}
+                {item.isActive ? "" : " · nonaktif"}
+                <span className="block text-ink-2">
+                  {item.employeeName ? `${item.employeeName} · PIN ${item.employeePin}` : "Tidak ditautkan ke pegawai"}
+                </span>
               </span>
-              <Link href={`/admin/users/${item.id}`} className="text-sm underline">
+              <Link href={`/admin/users/${item.id}`} className="underline">
                 Ubah
               </Link>
             </li>
