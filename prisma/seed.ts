@@ -1,6 +1,6 @@
 import { hash } from "argon2";
 import { config } from "dotenv";
-import { PrismaClient, Role } from "@prisma/client";
+import { AnomalyType, PrismaClient, Role, Severity } from "@prisma/client";
 import { DEFAULT_WORK_SCHEDULE } from "../src/lib/constants";
 
 config({ path: ".env" });
@@ -76,10 +76,42 @@ async function main(): Promise<void> {
     });
   }
 
+  const rules: Array<{ type: AnomalyType; severity: Severity; threshold?: number }> = [
+    { type: AnomalyType.ROW_MISMATCH, severity: Severity.HIGH },
+    { type: AnomalyType.TOTAL_MISMATCH, severity: Severity.HIGH },
+    { type: AnomalyType.DAYS_MISMATCH, severity: Severity.MEDIUM },
+    { type: AnomalyType.DATA_CHANGED, severity: Severity.CRITICAL },
+    { type: AnomalyType.DUPLICATE_FILE, severity: Severity.LOW },
+    { type: AnomalyType.FILE_METADATA_SUSPICIOUS, severity: Severity.MEDIUM },
+    { type: AnomalyType.MISSING_UPLOAD, severity: Severity.HIGH },
+    { type: AnomalyType.MISSING_PUNCH, severity: Severity.LOW },
+    { type: AnomalyType.NO_REASON, severity: Severity.MEDIUM },
+    { type: AnomalyType.REPEATED_LATE, severity: Severity.MEDIUM, threshold: 3 },
+    { type: AnomalyType.UNKNOWN_EMPLOYEE, severity: Severity.MEDIUM },
+    { type: AnomalyType.FORMAT_UNKNOWN, severity: Severity.HIGH },
+    { type: AnomalyType.GRANULARITY_MISMATCH, severity: Severity.LOW },
+    { type: AnomalyType.UNKNOWN_NOTE, severity: Severity.LOW },
+  ];
+  for (const rule of rules) {
+    await prisma.anomalyRule.upsert({
+      where: { type: rule.type },
+      update: { severity: rule.severity, threshold: rule.threshold ?? null, enabled: true },
+      create: {
+        type: rule.type,
+        severity: rule.severity,
+        threshold: rule.threshold ?? null,
+        notifyRoles: [Role.SUPER_ADMIN, Role.HR_ADMIN],
+        notifyManager: true,
+        channels: ["IN_APP", "EMAIL"],
+      },
+    });
+  }
+
   console.log("Seed complete:", {
     users: SEED_USERS.length,
     departments: 2,
     schedule: schedule.name,
+    rules: rules.length,
   });
 }
 

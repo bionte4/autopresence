@@ -9,7 +9,7 @@ export function LoginForm() {
   return (
     <form action={action} className="mt-8 flex flex-col gap-4" aria-label="Formulir masuk">
       {state?.error ? (
-        <p role="alert" className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-800 dark:bg-red-950 dark:text-red-200">
+        <p role="alert" className="rounded-lg bg-danger-soft px-3 py-2 text-sm text-danger">
           {state.error}
         </p>
       ) : null}
@@ -21,7 +21,7 @@ export function LoginForm() {
           autoComplete="username"
           required
           placeholder="email@perusahaan.local"
-          className="rounded-md border border-zinc-300 bg-white px-3 py-2 text-base font-normal dark:border-zinc-700 dark:bg-zinc-900"
+          className="field font-normal"
         />
       </label>
       <label className="flex flex-col gap-1 text-sm font-medium">
@@ -31,13 +31,13 @@ export function LoginForm() {
           name="password"
           autoComplete="current-password"
           required
-          className="rounded-md border border-zinc-300 bg-white px-3 py-2 text-base font-normal dark:border-zinc-700 dark:bg-zinc-900"
+          className="field font-normal"
         />
       </label>
       <button
         type="submit"
         disabled={pending}
-        className="mt-2 rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-60 dark:bg-zinc-100 dark:text-zinc-900"
+        className="btn btn-primary mt-2 w-full disabled:opacity-60"
       >
         {pending ? "Memproses..." : "Masuk"}
       </button>

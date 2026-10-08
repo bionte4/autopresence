@@ -1,8 +1,39 @@
+import cron from "node-cron";
+import { checkDueSchedules, sendDailyDigest } from "@/modules/monitoring/service";
+import { processDueDispatchJobs } from "@/modules/notify/dispatch";
+
 function main(): void {
-  console.log("Absensi Monitor worker started (M0 placeholder; cron jobs land in M7).");
-  setInterval(() => {
-    // Keep the process alive so docker-compose health stays up.
-  }, 60_000);
+  console.log("Absensi Monitor worker started.");
+  const dispatch = () => {
+    void processDueDispatchJobs().catch(() => {
+      console.error("Pengiriman anomali gagal dijalankan.");
+    });
+  };
+  dispatch();
+  setInterval(dispatch, 30_000);
+
+  cron.schedule(
+    "*/5 * * * *",
+    () => {
+      void checkDueSchedules(new Date()).catch(() => {
+        console.error("Pemeriksaan jadwal upload gagal.");
+      });
+      void sendDailyDigest(new Date()).catch(() => {
+        console.error("Ringkasan harian gagal.");
+      });
+    },
+    { timezone: "Asia/Jakarta" },
+  );
+
+  cron.schedule(
+    "0 7 * * *",
+    () => {
+      void sendDailyDigest(new Date()).catch(() => {
+        console.error("Ringkasan harian gagal.");
+      });
+    },
+    { timezone: "Asia/Jakarta" },
+  );
 }
 
 main();

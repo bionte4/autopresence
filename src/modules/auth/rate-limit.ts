@@ -20,6 +20,9 @@ export function createRateLimiter(limit: number, windowMs: number) {
 /** 10 failed attempts per 15 minutes. Account lockout is a separate control. */
 export const loginRateLimiter = createRateLimiter(10, 15 * 60 * 1000);
 
+/** Uploads are expensive to parse, so each account gets a separate budget. */
+export const uploadRateLimiter = createRateLimiter(20, 15 * 60 * 1000);
+
 export const MAX_FAILED_LOGINS = 5;
 export const LOCKOUT_MS = 15 * 60 * 1000;
 

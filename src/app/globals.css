@@ -1,26 +1,192 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-line: var(--line);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-primary: var(--primary);
+  --color-primary-soft: var(--primary-soft);
+  --color-on-primary: var(--on-primary);
+  --color-ok: var(--ok);
+  --color-ok-soft: var(--ok-soft);
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-critical: var(--critical);
+  --color-critical-soft: var(--critical-soft);
+  --color-low: var(--low);
+  --color-low-soft: var(--low-soft);
+  --font-sans: var(--font-jakarta), sans-serif;
+  --font-mono: var(--font-jetbrains), ui-monospace, monospace;
 }
 
-@media (prefers-color-scheme: dark) {
+:root {
+  --canvas: #eef2f5;
+  --surface: #ffffff;
+  --surface-2: #f7f9fb;
+  --line: #d9e1e7;
+  --ink: #13222b;
+  --ink-2: #4a5b66;
+  --primary: #27439b;
+  --primary-soft: #e6ebf8;
+  --on-primary: #ffffff;
+  --ok: #1f7a4d;
+  --ok-soft: #e3f4ea;
+  --warn: #9a5b00;
+  --warn-soft: #fff1d6;
+  --danger: #b4321e;
+  --danger-soft: #fde9e5;
+  --critical: #8e1138;
+  --critical-soft: #fbe4ec;
+  --low: #4a5b66;
+  --low-soft: #e8edf1;
+  --focus: #27439b;
+  --control: 44px;
+  --nav: 40px;
+  --bar: 3.5rem;
+  --row-pad: 0.875rem;
+  --stack: 1.5rem;
+  --panel-pad: 1rem;
+  color-scheme: light;
+}
+
+:root[data-density="compact"] {
+  --row-pad: 0.5rem;
+  --stack: 1rem;
+  --panel-pad: 0.75rem;
+}
+
+@media (min-width: 1024px) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --control: 40px;
+    --panel-pad: 1.25rem;
+  }
+
+  :root[data-density="compact"] {
+    --control: 32px;
+    --nav: 32px;
+    --bar: 3rem;
+    --row-pad: 0.5rem;
+    --stack: 1rem;
+    --panel-pad: 0.75rem;
   }
 }
 
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --canvas: #0e161b;
+    --surface: #152028;
+    --surface-2: #1b2a34;
+    --line: #263742;
+    --ink: #e7eef2;
+    --ink-2: #9fb0bb;
+    --primary: #8fa6f2;
+    --primary-soft: #1e2a52;
+    --on-primary: #0e161b;
+    --ok: #5bd08e;
+    --ok-soft: #14301f;
+    --warn: #f2b45a;
+    --warn-soft: #3a2b10;
+    --danger: #ff8a75;
+    --danger-soft: #3d1a14;
+    --critical: #ff7da0;
+    --critical-soft: #3e1424;
+    --low: #9fb0bb;
+    --low-soft: #1f2d37;
+    --focus: #8fa6f2;
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme="dark"] {
+  --canvas: #0e161b;
+  --surface: #152028;
+  --surface-2: #1b2a34;
+  --line: #263742;
+  --ink: #e7eef2;
+  --ink-2: #9fb0bb;
+  --primary: #8fa6f2;
+  --primary-soft: #1e2a52;
+  --on-primary: #0e161b;
+  --ok: #5bd08e;
+  --ok-soft: #14301f;
+  --warn: #f2b45a;
+  --warn-soft: #3a2b10;
+  --danger: #ff8a75;
+  --danger-soft: #3d1a14;
+  --critical: #ff7da0;
+  --critical-soft: #3e1424;
+  --low: #9fb0bb;
+  --low-soft: #1f2d37;
+  --focus: #8fa6f2;
+  color-scheme: dark;
+}
+
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: var(--font-jakarta), sans-serif;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.5;
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+@utility field {
+  min-height: var(--control);
+  width: 100%;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  padding: 0.5rem 0.75rem;
+  color: var(--ink);
+}
+
+@utility btn {
+  display: inline-flex;
+  min-height: var(--control);
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  padding: 0.5rem 0.875rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+@utility btn-primary {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: var(--on-primary);
+}
+
+@utility btn-ghost {
+  border-color: transparent;
+  background: transparent;
+  color: var(--ink-2);
+}
+
+@utility panel {
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  padding: var(--panel-pad);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }

@@ -14,7 +14,19 @@ export function formatMinutes(total: number): string {
   return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
 }
 
+const calendarDate = new Intl.DateTimeFormat("id-ID", {
+  timeZone: "UTC",
+  day: "2-digit",
+  month: "short",
+  year: "numeric",
+});
+
 export function formatDateTime(value: Date | string): string {
   const date = typeof value === "string" ? new Date(value) : value;
   return dateTime.format(date);
+}
+
+/** Calendar date stored as YYYY-MM-DD. UTC keeps the day from shifting in Asia/Jakarta. */
+export function formatCalendarDate(iso: string): string {
+  return calendarDate.format(new Date(`${iso}T00:00:00.000Z`));
 }

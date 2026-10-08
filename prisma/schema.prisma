@@ -63,6 +63,7 @@ enum AnomalyType {
   GRANULARITY_MISMATCH
   FILE_METADATA_SUSPICIOUS
   UNKNOWN_EMPLOYEE
+  UNKNOWN_NOTE
 }
 
 model User {
@@ -212,10 +213,11 @@ model Anomaly {
   message      String
   details      Json
   dedupeKey    String        @unique
-  resolvedById String?
-  resolvedNote String?
-  createdAt    DateTime      @default(now())
-  resolvedAt   DateTime?
+  resolvedById  String?
+  resolvedNote  String?
+  createdAt     DateTime       @default(now())
+  resolvedAt    DateTime?
+  notifications Notification[]
 }
 
 model AnomalyRule {
@@ -249,7 +251,9 @@ model Notification {
   attempts  Int       @default(0)
   readAt    DateTime?
   createdAt DateTime  @default(now())
+  anomaly   Anomaly?  @relation(fields: [anomalyId], references: [id], onDelete: SetNull)
 
+  @@unique([userId, anomalyId, channel])
   @@index([userId, readAt])
 }
 

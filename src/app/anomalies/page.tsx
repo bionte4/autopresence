@@ -1,0 +1,180 @@
+import Link from "next/link";
+import { Suspense } from "react";
+import { connection } from "next/server";
+import { forbidden, redirect } from "next/navigation";
+import { ZodError } from "zod";
+import { EmptyState } from "@/components/domain/empty-state";
+import { SeverityBadge } from "@/components/domain/severity-badge";
+import { MasterFrame } from "@/app/master/master-frame";
+import { formatCalendarDate } from "@/lib/format";
+import { ANOMALY_STATUS_LABEL, ANOMALY_TYPE_LABEL, SEVERITY_LABEL } from "@/modules/anomalies/labels";
+import { parseAnomalyListQuery, type AnomalyListQuery } from "@/modules/anomalies/schema";
+import { listAnomalyPage } from "@/modules/anomalies/service";
+import { getCurrentUser } from "@/modules/auth/current-user";
+import { firstParam } from "@/modules/master/query";
+import { can } from "@/modules/rbac/policy";
+
+const TYPES = Object.entries(ANOMALY_TYPE_LABEL);
+const STATUSES = Object.entries(ANOMALY_STATUS_LABEL);
+const SEVERITIES = Object.entries(SEVERITY_LABEL);
+
+function pageHref(query: AnomalyListQuery, patch: Partial<AnomalyListQuery>): string {
+  const next = { ...query, ...patch };
+  const params = new URLSearchParams();
+  if (next.q) params.set("q", next.q);
+  if (next.status) params.set("status", next.status);
+  if (next.severity) params.set("severity", next.severity);
+  if (next.type) params.set("type", next.type);
+  if (next.employeeId) params.set("employeeId", next.employeeId);
+  if (next.from) params.set("from", next.from);
+  if (next.to) params.set("to", next.to);
+  params.set("sort", next.sort);
+  params.set("direction", next.direction);
+  if (next.page > 1) params.set("page", String(next.page));
+  return `/anomalies?${params.toString()}`;
+}
+
+export default function AnomaliesPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  return (
+    <Suspense fallback={<p className="px-4 py-10 text-sm">Memuat anomali...</p>}>
+      <AnomaliesContent searchParams={searchParams} />
+    </Suspense>
+  );
+}
+
+async function AnomaliesContent({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  await connection();
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
+  if (!can(user, "anomaly.read")) forbidden();
+  const raw = await searchParams;
+  let query: AnomalyListQuery;
+  try {
+    query = parseAnomalyListQuery({
+      page: firstParam(raw.page),
+      q: firstParam(raw.q),
+      sort: firstParam(raw.sort),
+      direction: firstParam(raw.direction),
+      status: firstParam(raw.status),
+      severity: firstParam(raw.severity),
+      type: firstParam(raw.type),
+      employeeId: firstParam(raw.employeeId),
+      from: firstParam(raw.from),
+      to: firstParam(raw.to),
+    });
+  } catch (error) {
+    if (error instanceof ZodError) {
+      return (
+        <MasterFrame title="Anomali" user={user}>
+          <p role="alert" className="text-sm text-red-700">Filter tidak valid.</p>
+        </MasterFrame>
+      );
+    }
+    throw error;
+  }
+  const result = await listAnomalyPage(user, query);
+  if (!result.ok) forbidden();
+  const data = result.data;
+  const pageCount = Math.max(1, Math.ceil(data.total / data.pageSize));
+
+  return (
+    <MasterFrame title="Anomali" user={user}>
+      <form className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3" action="/anomalies">
+        <label className="flex flex-col gap-1 text-sm">
+          Cari
+          <input name="q" defaultValue={query.q} className="rounded-md border px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900" />
+        </label>
+        <label className="flex flex-col gap-1 text-sm">
+          Status
+          <select name="status" defaultValue={query.status ?? ""} className="rounded-md border px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900">
+            <option value="">Semua</option>
+            {STATUSES.map(([value, label]) => (
+              <option key={value} value={value}>{label}</option>
+            ))}
+          </select>
+        </label>
+        <label className="flex flex-col gap-1 text-sm">
+          Tingkat
+          <select name="severity" defaultValue={query.severity ?? ""} className="rounded-md border px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900">
+            <option value="">Semua</option>
+            {SEVERITIES.map(([value, label]) => (
+              <option key={value} value={value}>{label}</option>
+            ))}
+          </select>
+        </label>
+        <label className="flex flex-col gap-1 text-sm">
+          Jenis
+          <select name="type" defaultValue={query.type ?? ""} className="rounded-md border px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900">
+            <option value="">Semua</option>
+            {TYPES.map(([value, label]) => (
+              <option key={value} value={value}>{label}</option>
+            ))}
+          </select>
+        </label>
+        {data.employees.length > 0 ? (
+          <label className="flex flex-col gap-1 text-sm">
+            Pegawai
+            <select name="employeeId" defaultValue={query.employeeId ?? ""} className="rounded-md border px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900">
+              <option value="">Semua</option>
+              {data.employees.map((employee) => (
+                <option key={employee.id} value={employee.id}>{employee.name}</option>
+              ))}
+            </select>
+          </label>
+        ) : null}
+        <label className="flex flex-col gap-1 text-sm">
+          Dari
+          <input type="date" name="from" defaultValue={query.from ?? ""} className="rounded-md border px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900" />
+        </label>
+        <label className="flex flex-col gap-1 text-sm">
+          Sampai
+          <input type="date" name="to" defaultValue={query.to ?? ""} className="rounded-md border px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900" />
+        </label>
+        <button type="submit" className="self-end rounded-md border px-3 py-2 text-sm">Terapkan</button>
+      </form>
+      {data.total === 0 ? (
+        <EmptyState title="Tidak ada anomali pada filter ini." />
+      ) : (
+        <ul className="divide-y divide-zinc-200 dark:divide-zinc-800">
+          {data.items.map((item) => (
+            <li key={item.id} className="flex flex-col gap-1 py-3 text-sm sm:flex-row sm:items-center sm:justify-between">
+              <span>
+                <SeverityBadge severity={item.severity} />{" "}
+                {ANOMALY_TYPE_LABEL[item.type]} · {ANOMALY_STATUS_LABEL[item.status]}
+                <span className="block text-zinc-600 dark:text-zinc-400">
+                  {item.message}
+                  {item.employeeName ? ` · ${item.employeeName}` : ""}
+                  {item.date ? ` · ${formatCalendarDate(item.date)}` : ""}
+                </span>
+              </span>
+              <Link href={`/anomalies/${item.id}`} className="underline">Detail</Link>
+            </li>
+          ))}
+        </ul>
+      )}
+      <div className="flex flex-wrap gap-3 text-sm">
+        <Link href={pageHref(query, { sort: "createdAt", direction: query.sort === "createdAt" && query.direction === "desc" ? "asc" : "desc", page: 1 })} className="underline">
+          Urutkan waktu{query.sort === "createdAt" ? (query.direction === "asc" ? " ↑" : " ↓") : ""}
+        </Link>
+        <Link href={pageHref(query, { sort: "severity", direction: query.sort === "severity" && query.direction === "desc" ? "asc" : "desc", page: 1 })} className="underline">
+          Urutkan tingkat{query.sort === "severity" ? (query.direction === "asc" ? " ↑" : " ↓") : ""}
+        </Link>
+      </div>
+      <nav className="flex items-center justify-between text-sm" aria-label="Halaman">
+        <span>Halaman {data.page} dari {pageCount} ({data.total} data)</span>
+        <div className="flex gap-3">
+          {data.page > 1 ? <Link href={pageHref(query, { page: data.page - 1 })}>Sebelumnya</Link> : null}
+          {data.page < pageCount ? <Link href={pageHref(query, { page: data.page + 1 })}>Berikutnya</Link> : null}
+        </div>
+      </nav>
+    </MasterFrame>
+  );
+}
