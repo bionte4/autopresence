@@ -36,16 +36,27 @@ async function AnomalyDetail({ params }: { params: Promise<{ id: string }> }) {
 
   return (
     <MasterFrame title="Detail anomali" user={user}>
-      <p className="text-sm">
+      <div className="flex flex-wrap items-center gap-2">
         <SeverityBadge severity={anomaly.severity} />
-        <span className="ml-2">{ANOMALY_TYPE_LABEL[anomaly.type]}, {ANOMALY_STATUS_LABEL[anomaly.status]}</span>
-      </p>
+        <h2 className="font-semibold">{ANOMALY_TYPE_LABEL[anomaly.type]}</h2>
+        <span className="text-sm text-ink-2">{ANOMALY_STATUS_LABEL[anomaly.status]}</span>
+      </div>
       <p>{anomaly.message}</p>
+      <dl className="grid gap-2 text-sm sm:grid-cols-3">
+        <div>
+          <dt className="text-ink-2">Pegawai</dt>
+          <dd className="font-semibold">{anomaly.employeeName ?? "Seluruh berkas"}</dd>
+        </div>
+        <div>
+          <dt className="text-ink-2">Tanggal</dt>
+          <dd>{anomaly.date ? formatCalendarDate(anomaly.date) : "—"}</dd>
+        </div>
+        <div>
+          <dt className="text-ink-2">Dicatat</dt>
+          <dd>{formatDateTime(anomaly.createdAt)}</dd>
+        </div>
+      </dl>
       <DiffTable details={anomaly.details} />
-      <p className="text-sm text-ink-2">
-        {anomaly.employeeName ?? "Tanpa pegawai"}
-        {anomaly.date ? ` · ${formatCalendarDate(anomaly.date)}` : ""} · {formatDateTime(anomaly.createdAt)}
-      </p>
       {anomaly.resolvedNote ? <p className="text-sm">Catatan: {anomaly.resolvedNote}</p> : null}
       <div className="flex gap-3 text-sm">
         <Link href="/anomalies" className="underline">Kembali ke daftar</Link>

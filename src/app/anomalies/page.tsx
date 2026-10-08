@@ -138,36 +138,54 @@ async function AnomaliesContent({
           Sampai
           <input type="date" name="to" defaultValue={query.to ?? ""} className="field font-normal" />
         </label>
-        <button type="submit" className="btn self-end">Terapkan</button>
+        <button type="submit" className="btn justify-self-start self-end">Terapkan</button>
       </form>
       {data.total === 0 ? (
         <EmptyState title="Tidak ada anomali pada filter ini." />
       ) : (
-        <ul className="divide-y divide-line overflow-hidden rounded-xl border border-line bg-surface">
-          {data.items.map((item) => (
-            <li key={item.id} className="flex flex-col gap-1 py-3 text-sm sm:flex-row sm:items-center sm:justify-between">
-              <span>
-                <SeverityBadge severity={item.severity} />{" "}
-                {ANOMALY_TYPE_LABEL[item.type]} · {ANOMALY_STATUS_LABEL[item.status]}
-                <span className="block text-ink-2">
-                  {item.message}
-                  {item.employeeName ? ` · ${item.employeeName}` : ""}
-                  {item.date ? ` · ${formatCalendarDate(item.date)}` : ""}
+        <section className="flex flex-col gap-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-sm text-ink-2">{data.total} anomali</p>
+            <div className="flex rounded-lg border border-line p-0.5 text-sm">
+              <Link
+                href={pageHref(query, { sort: "createdAt", direction: query.sort === "createdAt" && query.direction === "desc" ? "asc" : "desc", page: 1 })}
+                className={`rounded-md px-2 py-1 ${query.sort === "createdAt" ? "bg-primary-soft font-semibold text-primary" : "text-ink-2"}`}
+                aria-current={query.sort === "createdAt" ? "true" : undefined}
+              >
+                Waktu{query.sort === "createdAt" ? (query.direction === "asc" ? " ↑" : " ↓") : ""}
+              </Link>
+              <Link
+                href={pageHref(query, { sort: "severity", direction: query.sort === "severity" && query.direction === "desc" ? "asc" : "desc", page: 1 })}
+                className={`rounded-md px-2 py-1 ${query.sort === "severity" ? "bg-primary-soft font-semibold text-primary" : "text-ink-2"}`}
+                aria-current={query.sort === "severity" ? "true" : undefined}
+              >
+                Tingkat{query.sort === "severity" ? (query.direction === "asc" ? " ↑" : " ↓") : ""}
+              </Link>
+            </div>
+          </div>
+          <ul className="divide-y divide-line overflow-hidden rounded-xl border border-line bg-surface">
+            {data.items.map((item) => (
+              <li key={item.id} className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3 px-4 py-3 text-sm">
+                <span className="min-w-0">
+                  <span className="flex flex-wrap items-center gap-2">
+                    <SeverityBadge severity={item.severity} />
+                    <span className="font-semibold">{ANOMALY_TYPE_LABEL[item.type]}</span>
+                    <span className="text-ink-2">{ANOMALY_STATUS_LABEL[item.status]}</span>
+                  </span>
+                  <span className="mt-1 block">
+                    {item.employeeName ?? "Seluruh berkas"}
+                    {item.date ? <span className="text-ink-2"> · {formatCalendarDate(item.date)}</span> : null}
+                  </span>
+                  <span className="block text-ink-2">{item.message}</span>
                 </span>
-              </span>
-              <Link href={`/anomalies/${item.id}`} className="underline">Detail</Link>
-            </li>
-          ))}
-        </ul>
+                <Link href={`/anomalies/${item.id}`} className="font-semibold text-primary">
+                  Detail
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
       )}
-      <div className="flex flex-wrap gap-3 text-sm">
-        <Link href={pageHref(query, { sort: "createdAt", direction: query.sort === "createdAt" && query.direction === "desc" ? "asc" : "desc", page: 1 })} className="underline">
-          Urutkan waktu{query.sort === "createdAt" ? (query.direction === "asc" ? " ↑" : " ↓") : ""}
-        </Link>
-        <Link href={pageHref(query, { sort: "severity", direction: query.sort === "severity" && query.direction === "desc" ? "asc" : "desc", page: 1 })} className="underline">
-          Urutkan tingkat{query.sort === "severity" ? (query.direction === "asc" ? " ↑" : " ↓") : ""}
-        </Link>
-      </div>
       <nav className="flex items-center justify-between text-sm" aria-label="Halaman">
         <span>Halaman {data.page} dari {pageCount} ({data.total} data)</span>
         <div className="flex gap-3">
