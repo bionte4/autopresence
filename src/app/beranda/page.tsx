@@ -38,6 +38,8 @@ async function BerandaContent() {
         <LogoutButton />
       </header>
       <nav className="flex flex-col gap-2 text-sm">
+        {can(user, "department.manage") ? <Link href="/master/customers" className="underline">Pelanggan</Link> : null}
+        {can(user, "department.manage") ? <Link href="/master/projects" className="underline">Proyek</Link> : null}
         {can(user, "department.manage") ? <Link href="/master/departments" className="underline">Departemen</Link> : null}
         {can(user, "employee.manage") ? <Link href="/master/employees" className="underline">Pegawai</Link> : null}
         {can(user, "schedule.manage") ? <Link href="/master/schedules" className="underline">Jadwal kerja</Link> : null}

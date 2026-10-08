@@ -12,6 +12,8 @@ export function MasterFrame({
   children: React.ReactNode;
 }) {
   const links = [
+    can(user, "department.manage") ? { href: "/master/customers", label: "Pelanggan" } : null,
+    can(user, "department.manage") ? { href: "/master/projects", label: "Proyek" } : null,
     can(user, "department.manage") ? { href: "/master/departments", label: "Departemen" } : null,
     can(user, "employee.manage") ? { href: "/master/employees", label: "Pegawai" } : null,
     can(user, "schedule.manage") ? { href: "/master/schedules", label: "Jadwal" } : null,

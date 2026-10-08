@@ -2,28 +2,28 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { connection } from "next/server";
 import { forbidden, redirect } from "next/navigation";
-import { MasterFrame } from "@/app/master/master-frame";
 import { ListControls } from "@/app/master/list-controls";
+import { MasterFrame } from "@/app/master/master-frame";
 import { getCurrentUser } from "@/modules/auth/current-user";
-import { listDepartmentPage } from "@/modules/departments/service";
+import { customerChoices } from "@/modules/customers/service";
 import { firstParam, parseListQuery } from "@/modules/master/query";
-import { linkableProjectChoices } from "@/modules/projects/service";
+import { listProjectPage } from "@/modules/projects/service";
 import { can } from "@/modules/rbac/policy";
-import { DepartmentForm } from "./department-form";
+import { ProjectForm } from "./project-form";
 
-export default function DepartmentsPage({
+export default function ProjectsPage({
   searchParams,
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   return (
-    <Suspense fallback={<p className="px-4 py-10 text-sm">Memuat departemen...</p>}>
-      <DepartmentsContent searchParams={searchParams} />
+    <Suspense fallback={<p className="px-4 py-10 text-sm">Memuat proyek...</p>}>
+      <ProjectsContent searchParams={searchParams} />
     </Suspense>
   );
 }
 
-async function DepartmentsContent({
+async function ProjectsContent({
   searchParams,
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -44,26 +44,23 @@ async function DepartmentsContent({
     ["name"],
     "name",
   );
-  const [result, projects] = await Promise.all([listDepartmentPage(user, query), linkableProjectChoices(user, null)]);
-  if (!result.ok || !projects.ok) forbidden();
+  const [result, customers] = await Promise.all([listProjectPage(user, query), customerChoices(user)]);
+  if (!result.ok || !customers.ok) forbidden();
   const pageCount = Math.max(1, Math.ceil(result.data.total / result.data.pageSize));
 
   return (
-    <MasterFrame title="Departemen" user={user}>
-      <DepartmentForm projects={projects.data} />
+    <MasterFrame title="Proyek" user={user}>
+      <ProjectForm customers={customers.data} />
       {result.data.items.length === 0 ? (
-        <p className="rounded-md border border-dashed px-4 py-8 text-center text-sm text-zinc-600">
-          Tidak ada departemen.
-        </p>
+        <p className="rounded-md border border-dashed px-4 py-8 text-center text-sm text-zinc-600">Tidak ada proyek.</p>
       ) : (
         <ul className="divide-y divide-zinc-200 dark:divide-zinc-800">
           {result.data.items.map((item) => (
-            <li key={item.id} className="flex items-center justify-between py-3">
+            <li key={item.id} className="flex items-center justify-between gap-3 py-3">
               <span>
-                {item.name}
-                {item.customerName && item.projectName ? ` — ${item.customerName} / ${item.projectName}` : ""}
+                {item.customerName} — {item.name}
               </span>
-              <Link href={`/master/departments/${item.id}`} className="text-sm underline">
+              <Link href={`/master/projects/${item.id}`} className="text-sm underline">
                 Ubah
               </Link>
             </li>
@@ -71,7 +68,7 @@ async function DepartmentsContent({
         </ul>
       )}
       <ListControls
-        basePath="/master/departments"
+        basePath="/master/projects"
         q={query.q}
         sort={query.sort}
         direction={query.direction}

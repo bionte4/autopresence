@@ -4,19 +4,41 @@ import type { ListQuery } from "@/modules/master/query";
 import { conflict, denied, missing, type ServiceResult } from "@/modules/master/result";
 import { can, type AuthUser } from "@/modules/rbac/policy";
 import {
+  findActiveProject,
   findDepartment,
   insertDepartment,
   listDepartmentOptions,
   listDepartments,
   softDeleteDepartment,
   updateDepartment,
+  type DepartmentRow,
 } from "./repo";
 import { departmentBodySchema } from "./schema";
 
-export type DepartmentDto = { id: string; name: string };
+export type DepartmentDto = {
+  id: string;
+  name: string;
+  projectId: string | null;
+  projectName: string | null;
+  customerId: string | null;
+  customerName: string | null;
+};
 
-function toDto(row: { id: string; name: string }): DepartmentDto {
-  return { id: row.id, name: row.name };
+function toDto(row: DepartmentRow): DepartmentDto {
+  return {
+    id: row.id,
+    name: row.name,
+    projectId: row.projectId,
+    projectName: row.project?.name ?? null,
+    customerId: row.project?.customerId ?? null,
+    customerName: row.project?.customer.name ?? null,
+  };
+}
+
+async function projectLinkError(projectId: string | null): Promise<ServiceResult<DepartmentDto> | null> {
+  if (!projectId) return null;
+  if (!(await findActiveProject(projectId))) return missing("Proyek tidak ditemukan.");
+  return null;
 }
 
 export async function listDepartmentPage(
@@ -51,16 +73,18 @@ export async function createDepartment(
 ): Promise<ServiceResult<DepartmentDto>> {
   if (!can(actor, "department.manage")) return denied();
   const body = departmentBodySchema.parse(input);
+  const linkError = await projectLinkError(body.projectId);
+  if (linkError) return linkError;
   try {
     const row = await transaction(async (tx) => {
-      const created = await insertDepartment(tx, body.name);
+      const created = await insertDepartment(tx, body);
       await audit(
         {
           actorId: actor.id,
           action: "department.create",
           entity: "Department",
           entityId: created.id,
-          diff: { name: created.name },
+          diff: { name: created.name, projectId: created.projectId },
           ip,
         },
         tx,
@@ -84,16 +108,21 @@ export async function editDepartment(
   const body = departmentBodySchema.parse(input);
   const existing = await findDepartment(id);
   if (!existing) return missing("Departemen tidak ditemukan.");
+  const linkError = await projectLinkError(body.projectId);
+  if (linkError) return linkError;
   try {
     const row = await transaction(async (tx) => {
-      const updated = await updateDepartment(tx, id, body.name);
+      const updated = await updateDepartment(tx, id, body);
       await audit(
         {
           actorId: actor.id,
           action: "department.update",
           entity: "Department",
           entityId: id,
-          diff: { before: { name: existing.name }, after: { name: updated.name } },
+          diff: {
+            before: { name: existing.name, projectId: existing.projectId },
+            after: { name: updated.name, projectId: updated.projectId },
+          },
           ip,
         },
         tx,
