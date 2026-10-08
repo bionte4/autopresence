@@ -8,9 +8,12 @@ export const ACTIONS = [
   "upload.create",
   "upload.read",
   "upload.download",
+  "upload.delete",
   "attendance.read",
   "correction.create",
   "correction.review",
+  "request.create",
+  "request.review",
   "anomaly.read",
   "anomaly.resolve",
   "rule.manage",
@@ -51,9 +54,12 @@ const ALLOWED: Record<Action, readonly Role[]> = {
   "upload.create": ["SUPER_ADMIN", "HR_ADMIN"],
   "upload.read": ["SUPER_ADMIN", "HR_ADMIN", "AUDITOR"],
   "upload.download": ["SUPER_ADMIN", "HR_ADMIN", "AUDITOR"],
+  "upload.delete": ["SUPER_ADMIN", "HR_ADMIN"],
   "attendance.read": ["SUPER_ADMIN", "HR_ADMIN", "MANAGER", "AUDITOR", "EMPLOYEE"],
   "correction.create": ["SUPER_ADMIN", "HR_ADMIN", "MANAGER", "EMPLOYEE"],
   "correction.review": ["SUPER_ADMIN", "HR_ADMIN"],
+  "request.create": ["SUPER_ADMIN", "HR_ADMIN", "MANAGER", "EMPLOYEE"],
+  "request.review": ["SUPER_ADMIN", "HR_ADMIN", "MANAGER"],
   "anomaly.read": ["SUPER_ADMIN", "HR_ADMIN", "MANAGER", "AUDITOR"],
   "anomaly.resolve": ["SUPER_ADMIN", "HR_ADMIN", "MANAGER"],
   "rule.manage": ["SUPER_ADMIN", "HR_ADMIN"],
@@ -106,6 +112,21 @@ function resourceAllows(user: AuthUser, action: Action, resource: Resource | und
   if (action === "correction.create" && user.role === "EMPLOYEE") {
     if (!resource?.employeeId || !user.employeeId) return false;
     return resource.employeeId === user.employeeId;
+  }
+
+  if (action === "request.create" && user.role === "MANAGER") {
+    if (!resource?.departmentId) return false;
+    return user.managedDepartmentIds.includes(resource.departmentId);
+  }
+
+  if (action === "request.create" && user.role === "EMPLOYEE") {
+    if (!resource?.employeeId || !user.employeeId) return false;
+    return resource.employeeId === user.employeeId;
+  }
+
+  if (action === "request.review" && user.role === "MANAGER") {
+    if (!resource?.departmentId || resource.employeeId === user.employeeId) return false;
+    return user.managedDepartmentIds.includes(resource.departmentId);
   }
 
   if (action === "notification.read" && resource?.ownerUserId) {

@@ -16,6 +16,8 @@ export function MasterFrame({
     can(user, "anomaly.read") ? { href: "/anomalies", label: "Anomali", group: "main" } : null,
     can(user, "upload.read") ? { href: "/monitoring", label: "Pemantauan", group: "main" } : null,
     can(user, "attendance.read") ? { href: "/corrections", label: "Koreksi", group: "main" } : null,
+    can(user, "attendance.read") ? { href: "/timesheet", label: "Timesheet", group: "main" } : null,
+    can(user, "attendance.read") ? { href: "/requests", label: "Pengajuan", group: "main" } : null,
     can(user, "department.manage") ? { href: "/master/customers", label: "Pelanggan", group: "data" } : null,
     can(user, "department.manage") ? { href: "/master/projects", label: "Proyek", group: "data" } : null,
     can(user, "department.manage") ? { href: "/master/departments", label: "Departemen", group: "data" } : null,

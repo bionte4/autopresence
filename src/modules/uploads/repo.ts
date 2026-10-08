@@ -145,6 +145,22 @@ export async function insertAnomaly(
   }
 }
 
+export async function uploadHasHistory(db: Db, uploadId: string) {
+  const revisions = await db.attendanceRevision.count({
+    where: { OR: [{ uploadId }, { record: { sourceUploadId: uploadId } }] },
+  });
+  const corrections = await db.correction.count({ where: { record: { sourceUploadId: uploadId } } });
+  return revisions + corrections > 0;
+}
+
+export async function deleteUploadData(db: Db, uploadId: string) {
+  await db.notification.deleteMany({ where: { anomaly: { uploadId } } });
+  await db.anomaly.deleteMany({ where: { uploadId } });
+  await db.job.deleteMany({ where: { payload: { path: ["uploadId"], equals: uploadId } } });
+  await db.attendanceRecord.deleteMany({ where: { sourceUploadId: uploadId } });
+  await db.upload.delete({ where: { id: uploadId } });
+}
+
 export async function insertJob(db: Db, uploadId: string) {
   return db.job.create({
     data: { type: "anomaly.dispatch", payload: { uploadId }, status: "PENDING" },

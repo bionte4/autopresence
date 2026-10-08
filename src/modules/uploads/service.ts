@@ -14,7 +14,7 @@ import {
   type Granularity as ChosenGranularity,
 } from "@/modules/ingest/validator/rules";
 import type { ListQuery } from "@/modules/master/query";
-import { denied, type ServiceResult } from "@/modules/master/result";
+import { conflict, denied, missing, type ServiceResult } from "@/modules/master/result";
 import { can, type AuthUser } from "@/modules/rbac/policy";
 import { decideConflict, type PunchFields } from "./conflict";
 import { dateOnly, isoDate } from "./dates";
@@ -29,6 +29,7 @@ import {
   findUpload,
   findUploadByHash,
   findUploadByKey,
+  deleteUploadData,
   insertAnomaly,
   insertAttendance,
   insertJob,
@@ -38,9 +39,10 @@ import {
   listUploads,
   markUpload,
   updateAttendance,
+  uploadHasHistory,
 } from "./repo";
 import { safeDispatch } from "@/modules/notify/dispatch";
-import { newStorageKey, readOriginal, storeOriginal } from "./storage";
+import { newStorageKey, readOriginal, removeOriginal, storeOriginal } from "./storage";
 
 const DEFAULT_SEVERITY: Record<AnomalyCode, Severity> = {
   ROW_MISMATCH: Severity.HIGH,
@@ -137,6 +139,33 @@ export async function getUpload(actor: AuthUser, id: string): Promise<ServiceRes
       })),
     },
   };
+}
+
+export async function removeUpload(
+  actor: AuthUser,
+  id: string,
+  ip: string | null,
+): Promise<ServiceResult<{ id: string }>> {
+  if (!can(actor, "upload.delete")) return denied();
+  const row = await findUpload(id);
+  if (!row) return missing("Upload tidak ditemukan.");
+  if (await uploadHasHistory(prisma, id)) return conflict("Berkas ini punya riwayat koreksi dan tidak dapat dihapus.");
+  await transaction(async (tx) => {
+    await deleteUploadData(tx, id);
+    await audit(
+      {
+        actorId: actor.id,
+        action: "upload.delete",
+        entity: "Upload",
+        entityId: id,
+        diff: { originalName: row.originalName, sha256: row.sha256 },
+        ip,
+      },
+      tx,
+    );
+  });
+  await removeOriginal(row.storageKey);
+  return { ok: true, data: { id } };
 }
 
 export async function openUploadFile(

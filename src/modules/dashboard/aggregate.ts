@@ -2,6 +2,7 @@ import { isLate } from "@/modules/ingest/validator/late";
 
 const MISSING_PUNCH = /kurang presensi/i;
 const NO_REASON = /tanpa keterangan/i;
+const EXCUSED = /^(cuti|sakit)\b/i;
 
 export type DayRow = {
   employeeId: string;
@@ -49,6 +50,7 @@ export function rowIsLate(row: DayRow): boolean {
 }
 
 export function rowMissingPunch(row: Pick<DayRow, "note" | "isWorkday" | "clockInMin" | "clockOutMin">): boolean {
+  if (row.note && EXCUSED.test(row.note.trim())) return false;
   if (row.note && MISSING_PUNCH.test(row.note)) return true;
   return row.isWorkday && (row.clockInMin === null || row.clockOutMin === null);
 }

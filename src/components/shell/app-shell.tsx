@@ -6,7 +6,9 @@ import { useEffect, useState } from "react";
 import {
   Building2,
   CalendarClock,
+  CalendarDays,
   ChevronRight,
+  ClipboardList,
   Clock,
   FolderKanban,
   FolderTree,
@@ -34,6 +36,8 @@ const ICONS: Record<string, LucideIcon> = {
   "/anomalies": TriangleAlert,
   "/monitoring": CalendarClock,
   "/corrections": PenLine,
+  "/timesheet": CalendarDays,
+  "/requests": ClipboardList,
   "/master/customers": Building2,
   "/master/projects": FolderKanban,
   "/master/departments": Network,
@@ -205,7 +209,7 @@ function NavItem({ link, pathname, nested = false }: { link: ShellLink; pathname
       title={link.label}
       className={`flex min-h-(--nav) items-center gap-3 rounded-lg text-sm ${nested ? "px-3" : "justify-center px-2 lg:justify-start lg:px-3"} ${active ? "bg-primary-soft font-semibold text-primary" : "text-ink-2 hover:bg-surface-2 hover:text-ink"}`}
     >
-      {Icon && !nested ? <Icon className="size-4 shrink-0" strokeWidth={1.75} aria-hidden /> : null}
+      {!nested ? <Icon className="size-4 shrink-0" strokeWidth={1.75} aria-hidden /> : null}
       <span className={nested ? "inline" : "hidden lg:inline"}>{link.label}</span>
     </Link>
   );

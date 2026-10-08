@@ -12,9 +12,12 @@ const ALLOWED: Record<Action, readonly Role[]> = {
   "upload.create": ["SUPER_ADMIN", "HR_ADMIN"],
   "upload.read": ["SUPER_ADMIN", "HR_ADMIN", "AUDITOR"],
   "upload.download": ["SUPER_ADMIN", "HR_ADMIN", "AUDITOR"],
+  "upload.delete": ["SUPER_ADMIN", "HR_ADMIN"],
   "attendance.read": ["SUPER_ADMIN", "HR_ADMIN", "MANAGER", "AUDITOR", "EMPLOYEE"],
   "correction.create": ["SUPER_ADMIN", "HR_ADMIN", "MANAGER", "EMPLOYEE"],
   "correction.review": ["SUPER_ADMIN", "HR_ADMIN"],
+  "request.create": ["SUPER_ADMIN", "HR_ADMIN", "MANAGER", "EMPLOYEE"],
+  "request.review": ["SUPER_ADMIN", "HR_ADMIN", "MANAGER"],
   "anomaly.read": ["SUPER_ADMIN", "HR_ADMIN", "MANAGER", "AUDITOR"],
   "anomaly.resolve": ["SUPER_ADMIN", "HR_ADMIN", "MANAGER"],
   "rule.manage": ["SUPER_ADMIN", "HR_ADMIN"],
@@ -44,6 +47,15 @@ function resourceFor(action: Action, role: Role): Resource | undefined {
   }
   if (action === "correction.create" && role === "EMPLOYEE") {
     return { employeeId: "emp-1" };
+  }
+  if (action === "request.create" && role === "MANAGER") {
+    return { departmentId: "dept-1" };
+  }
+  if (action === "request.create" && role === "EMPLOYEE") {
+    return { employeeId: "emp-1" };
+  }
+  if (action === "request.review" && role === "MANAGER") {
+    return { departmentId: "dept-1", employeeId: "emp-2" };
   }
   if (action === "notification.read") {
     return { ownerUserId: "user-1" };

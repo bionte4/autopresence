@@ -6,6 +6,7 @@ import { EmptyState } from "@/components/domain/empty-state";
 import { IntegritySeal } from "@/components/domain/integrity-seal";
 import { SeverityBadge } from "@/components/domain/severity-badge";
 import { UploadPipeline } from "@/components/domain/upload-pipeline";
+import { DeleteButton } from "@/app/master/delete-button";
 import { MasterFrame } from "@/app/master/master-frame";
 import { formatCalendarDate } from "@/lib/format";
 import { getCurrentUser } from "@/modules/auth/current-user";
@@ -51,11 +52,21 @@ async function UploadDetail({ params }: { params: Promise<{ id: string }> }) {
           <UploadPipeline status={upload.status} />
         </div>
       </section>
-      {can(user, "upload.download") ? (
-        <Link href={`/api/uploads/${upload.id}/file`} className="text-sm font-semibold text-primary">
-          Unduh berkas asli
-        </Link>
-      ) : null}
+      <div className="flex flex-wrap items-center gap-4">
+        {can(user, "upload.download") ? (
+          <Link href={`/api/uploads/${upload.id}/file`} className="text-sm font-semibold text-primary">
+            Unduh berkas asli
+          </Link>
+        ) : null}
+        {can(user, "upload.delete") ? (
+          <DeleteButton
+            url={`/api/uploads/${upload.id}`}
+            label={upload.originalName}
+            redirectTo="/uploads"
+            detail={`Hapus ${upload.originalName}? Berkas asli, baris kehadiran dari unggahan ini, dan anomalinya ikut terhapus. Pegawai tetap tersimpan.`}
+          />
+        ) : null}
+      </div>
       {upload.stats ? (
         <dl className="grid grid-cols-2 overflow-hidden rounded-xl border border-line bg-surface sm:grid-cols-3 lg:grid-cols-6">
           {(

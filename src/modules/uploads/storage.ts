@@ -1,5 +1,5 @@
 import { randomBytes } from "node:crypto";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { getEnv } from "@/lib/env";
 
@@ -27,4 +27,13 @@ export async function storeOriginal(key: string, bytes: Uint8Array): Promise<voi
 
 export async function readOriginal(key: string): Promise<Buffer> {
   return readFile(location(key));
+}
+
+export async function removeOriginal(key: string): Promise<void> {
+  try {
+    await unlink(location(key));
+  } catch (error) {
+    if (error instanceof Error && "code" in error && error.code === "ENOENT") return;
+    throw error;
+  }
 }

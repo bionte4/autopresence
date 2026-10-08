@@ -9,6 +9,7 @@ import { getCurrentUser } from "@/modules/auth/current-user";
 import { firstParam, parseListQuery } from "@/modules/master/query";
 import { can } from "@/modules/rbac/policy";
 import { listUploadPage } from "@/modules/uploads/service";
+import { DeleteButton } from "@/app/master/delete-button";
 import { UploadForm } from "./upload-form";
 
 const STATUS_LABEL = {
@@ -69,9 +70,19 @@ async function UploadsContent({
               <span>
                 {item.originalName} · {GRANULARITY_LABEL[item.granularity]} · {STATUS_LABEL[item.status]}
               </span>
-              <Link href={`/uploads/${item.id}`} className="text-sm underline">
-                Detail
-              </Link>
+              <span className="flex items-center gap-3">
+                <Link href={`/uploads/${item.id}`} className="text-sm underline">
+                  Detail
+                </Link>
+                {can(user, "upload.delete") ? (
+                  <DeleteButton
+                    url={`/api/uploads/${item.id}`}
+                    label={item.originalName}
+                    redirectTo="/uploads"
+                    detail={`Hapus ${item.originalName}? Berkas asli, baris kehadiran dari unggahan ini, dan anomalinya ikut terhapus. Pegawai tetap tersimpan.`}
+                  />
+                ) : null}
+              </span>
             </li>
           ))}
         </ul>

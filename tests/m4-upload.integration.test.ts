@@ -4,7 +4,7 @@ import { afterAll, describe, expect, it } from "vitest";
 import { prisma, transaction } from "@/lib/prisma";
 import type { AuthUser } from "@/modules/rbac/policy";
 import { insertAttendance } from "@/modules/uploads/repo";
-import { ingestUpload } from "@/modules/uploads/service";
+import { ingestUpload, removeUpload } from "@/modules/uploads/service";
 
 const mime = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 const created = { employees: [] as string[], uploads: [] as string[] };
@@ -204,6 +204,43 @@ describe("upload pipeline", () => {
     expect(employee?.name).toContain("Uji Upload");
     if (employee) created.employees.push(employee.id);
     expect(await prisma.anomaly.count({ where: { uploadId: saved.data.id, type: "UNKNOWN_EMPLOYEE" } })).toBe(0);
+  });
+
+  it("lets HR delete an upload and upload the same file again", async () => {
+    const admin = await prisma.user.findUniqueOrThrow({ where: { email: "hr.admin@local" } });
+    const auditor = await prisma.user.findUniqueOrThrow({ where: { email: "auditor@local" } });
+    const actor: AuthUser = {
+      id: admin.id,
+      email: admin.email,
+      name: admin.name,
+      role: admin.role,
+      employeeId: null,
+      managedDepartmentIds: [],
+    };
+    const reader: AuthUser = {
+      id: auditor.id,
+      email: auditor.email,
+      name: auditor.name,
+      role: auditor.role,
+      employeeId: null,
+      managedDepartmentIds: [],
+    };
+    const pin = `D${Date.now()}`;
+    const bytes = sheet(": 4 Okt - 4 Okt 2026", `: ${pin}`, [day("Mg, 4 Okt 2026", "08:00", "17:05")], ["Total 1 Hari", "", "", "", "", "-", "-", "-", "-", "-", "09:05", "09:05"]);
+    const saved = await ingestUpload(actor, { filename: "uji-hapus.xlsx", mime, bytes, granularity: "DAILY", confirm: false }, null);
+    expect(saved.ok).toBe(true);
+    if (!saved.ok) return;
+    const employee = await prisma.employee.findFirst({ where: { pin, deletedAt: null } });
+    if (employee) created.employees.push(employee.id);
+    await expect(removeUpload(reader, saved.data.id, null)).resolves.toMatchObject({ status: 403 });
+    const removed = await removeUpload(actor, saved.data.id, null);
+    expect(removed.ok).toBe(true);
+    expect(await prisma.upload.findUnique({ where: { id: saved.data.id } })).toBeNull();
+    expect(await prisma.attendanceRecord.count({ where: { sourceUploadId: saved.data.id } })).toBe(0);
+    const again = await ingestUpload(actor, { filename: "uji-hapus.xlsx", mime, bytes, granularity: "DAILY", confirm: false }, null);
+    expect(again.ok).toBe(true);
+    if (!again.ok) return;
+    created.uploads.push(again.data.id);
   });
 
   it("accepts the real sample workbook bytes as a zip", () => {

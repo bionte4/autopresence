@@ -3,7 +3,17 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-export function DeleteButton({ url, label, redirectTo }: { url: string; label: string; redirectTo: string }) {
+export function DeleteButton({
+  url,
+  label,
+  redirectTo,
+  detail,
+}: {
+  url: string;
+  label: string;
+  redirectTo: string;
+  detail?: string;
+}) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -40,7 +50,7 @@ export function DeleteButton({ url, label, redirectTo }: { url: string; label: s
           aria-labelledby="delete-title"
           className="mt-3 rounded-md border border-zinc-300 p-4 dark:border-zinc-700"
         >
-          <p id="delete-title">Hapus {label}? Data tidak ditampilkan lagi.</p>
+          <p id="delete-title">{detail ?? `Hapus ${label}? Data tidak ditampilkan lagi.`}</p>
           {error ? (
             <p role="alert" className="mt-2 text-sm text-red-700">
               {error}

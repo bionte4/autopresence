@@ -49,6 +49,14 @@ describe("dashboard totals", () => {
     expect(summary).toMatchObject({ lateCount: 0, missingPunch: 1, noReason: 1 });
   });
 
+  it("does not count an approved leave day as a missing punch", () => {
+    const [summary] = summarizeEmployees(
+      [billy],
+      [day("2026-10-02", null, { clockInMin: null, clockOutMin: null, note: "Cuti" })],
+    );
+    expect(summary?.missingPunch).toBe(0);
+  });
+
   it("buckets the two October late days into one month and two weeks", () => {
     const rows = [day("2026-10-02", 133), day("2026-10-07", 90)];
     expect(isoWeek("2026-10-02")).not.toBe(isoWeek("2026-10-07"));
