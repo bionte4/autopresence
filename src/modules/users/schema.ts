@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-const roleSchema = z.enum(["SUPER_ADMIN", "HR_ADMIN", "MANAGER", "AUDITOR", "EMPLOYEE"]);
+const roleSchema = z.enum(["SUPER_ADMIN", "HR_ADMIN", "MANAGER", "AUDITOR", "EMPLOYEE", "CUSTOMER"]);
 
 const optionalId = z
   .string()
@@ -22,6 +22,12 @@ export const createUserSchema = z.object({
   isActive: z.boolean().default(true),
   employeeId: optionalId,
   managedDepartmentIds: z.array(z.string().trim().min(1).max(64)).max(20).default([]),
+  customerId: z
+    .string()
+    .trim()
+    .max(64)
+    .nullish()
+    .transform((value) => (value ? value : null)),
 });
 
 export const updateUserSchema = createUserSchema

@@ -27,6 +27,8 @@ export type AnomalyListQuery = {
   departmentId?: string;
   from?: string;
   to?: string;
+  /** When set with a date range, undated findings stay out of the list. */
+  dated?: boolean;
 };
 
 const anomalyListSchema = z.object({
@@ -100,6 +102,7 @@ export function parseAnomalyListQuery(params: Record<string, string | undefined>
     departmentId,
     from,
     to,
+    dated: params.dated === "1" && Boolean(from || to),
   };
 }
 

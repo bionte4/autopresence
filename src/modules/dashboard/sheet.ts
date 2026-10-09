@@ -7,11 +7,20 @@ export function sheetText(value: string): string {
   return /^[=+\-@\t\r]/.test(value) ? `'${value}` : value;
 }
 
-export function attendanceWorkbook(rows: EmployeeSummary[]): Buffer {
-  const header = ["Nama", "PIN", "Departemen", "Kejadian terlambat", "Total telat", "Kurang presensi", "Tanpa keterangan"];
+export function attendanceWorkbook(rows: EmployeeSummary[], options?: { includePin?: boolean }): Buffer {
+  const includePin = options?.includePin !== false;
+  const header = [
+    "Nama",
+    ...(includePin ? ["PIN"] : []),
+    "Departemen",
+    "Kejadian terlambat",
+    "Total telat",
+    "Kurang presensi",
+    "Tanpa keterangan",
+  ];
   const body = rows.map((row) => [
     sheetText(row.name),
-    sheetText(row.pin),
+    ...(includePin ? [sheetText(row.pin)] : []),
     sheetText(row.departmentName ?? ""),
     row.lateCount,
     sheetText(formatMinutes(row.lateMinutes)),

@@ -1,12 +1,14 @@
 import { prisma } from "@/lib/prisma";
 import type { DataScope } from "@/modules/rbac/policy";
-import { dateOnly } from "@/modules/uploads/dates";
+import { dateOnly, isoDate } from "@/modules/uploads/dates";
 
 export type EmployeeFilter = {
   scope: DataScope;
   departmentId?: string;
   employeeId?: string;
   q?: string;
+  /** Customer viewers search by name only, so a PIN cannot be looked up from the dashboard. */
+  matchPin?: boolean;
 };
 
 const employeeSelect = {
@@ -39,7 +41,7 @@ export async function findDashboardEmployees(filter: EmployeeFilter) {
         ? {
             OR: [
               { name: { contains: filter.q, mode: "insensitive" } },
-              { pin: { contains: filter.q, mode: "insensitive" } },
+              ...(filter.matchPin === false ? [] : [{ pin: { contains: filter.q, mode: "insensitive" as const } }]),
             ],
           }
         : {}),
@@ -95,6 +97,16 @@ export async function countOpenAnomalies(employeeIds: string[], from: string, to
       ],
     },
   });
+}
+
+/** Dated anomalies only. File-level findings have no day, so they cannot sit on the calendar. */
+export async function findAnomalyDates(employeeId: string, from: string, to: string): Promise<string[]> {
+  const rows = await prisma.anomaly.findMany({
+    where: { employeeId, date: { gte: dateOnly(from), lte: dateOnly(to) } },
+    select: { date: true },
+    distinct: ["date"],
+  });
+  return rows.flatMap((row) => (row.date ? [isoDate(row.date)] : []));
 }
 
 export async function findLatestUpload(employeeIds: string[] | "all") {

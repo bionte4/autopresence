@@ -4,6 +4,7 @@ import { forbidden, notFound, redirect } from "next/navigation";
 import { DeleteButton } from "@/app/master/delete-button";
 import { MasterFrame } from "@/app/master/master-frame";
 import { getCurrentUser } from "@/modules/auth/current-user";
+import { customerChoices } from "@/modules/customers/service";
 import { departmentChoices } from "@/modules/departments/service";
 import { employeeChoices } from "@/modules/employees/service";
 import { can } from "@/modules/rbac/policy";
@@ -24,17 +25,18 @@ async function EditUser({ params }: { params: Promise<{ id: string }> }) {
   if (!user) redirect("/login");
   if (!can(user, "user.manage")) forbidden();
   const { id } = await params;
-  const [result, departments, employees] = await Promise.all([
+  const [result, departments, employees, customers] = await Promise.all([
     getUser(user, id),
     departmentChoices(user),
     employeeChoices(user),
+    customerChoices(user),
   ]);
-  if (!departments.ok || !employees.ok) forbidden();
+  if (!departments.ok || !employees.ok || !customers.ok) forbidden();
   if (!result.ok) notFound();
 
   return (
     <MasterFrame title="Ubah akun login" user={user}>
-      <UserForm {...result.data} departments={departments.data} employees={employees.data} />
+      <UserForm {...result.data} departments={departments.data} employees={employees.data} customers={customers.data} />
       {user.id === result.data.id ? null : (
         <DeleteButton
           url={`/api/users/${result.data.id}`}

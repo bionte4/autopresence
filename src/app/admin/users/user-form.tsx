@@ -16,8 +16,10 @@ export function UserForm({
   isActive = true,
   employeeId,
   managedDepartmentIds = [],
+  customerId,
   departments,
   employees,
+  customers,
 }: {
   id?: string;
   email?: string;
@@ -26,8 +28,10 @@ export function UserForm({
   isActive?: boolean;
   employeeId?: string | null;
   managedDepartmentIds?: string[];
+  customerId?: string | null;
   departments: Array<{ id: string; name: string }>;
   employees: Array<{ id: string; name: string; pin: string }>;
+  customers: Array<{ id: string; name: string }>;
 }) {
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
@@ -46,6 +50,7 @@ export function UserForm({
       isActive: formData.get("isActive") === "on",
       employeeId: formData.get("employeeId"),
       managedDepartmentIds: formData.getAll("managedDepartmentIds"),
+      customerId: formData.get("customerId"),
     });
     setPending(false);
     if (message) {
@@ -99,17 +104,31 @@ export function UserForm({
           ))}
         </select>
       </label>
-      <label className="flex flex-col gap-1 text-xs text-ink-2 sm:col-span-2">
-        Tautan pegawai
-        <select name="employeeId" defaultValue={employeeId ?? ""} className="field font-normal">
-          <option value="">Tidak ditautkan</option>
-          {employees.map((employee) => (
-            <option key={employee.id} value={employee.id}>
-              {employee.name} ({employee.pin})
-            </option>
-          ))}
-        </select>
-      </label>
+      {selectedRole === "CUSTOMER" ? (
+        <label className="flex flex-col gap-1 text-xs text-ink-2 sm:col-span-2">
+          Pelanggan
+          <select name="customerId" required defaultValue={customerId ?? ""} className="field font-normal">
+            <option value="">Pilih pelanggan</option>
+            {customers.map((customer) => (
+              <option key={customer.id} value={customer.id}>
+                {customer.name}
+              </option>
+            ))}
+          </select>
+        </label>
+      ) : (
+        <label className="flex flex-col gap-1 text-xs text-ink-2 sm:col-span-2">
+          Tautan pegawai
+          <select name="employeeId" defaultValue={employeeId ?? ""} className="field font-normal">
+            <option value="">Tidak ditautkan</option>
+            {employees.map((employee) => (
+              <option key={employee.id} value={employee.id}>
+                {employee.name} ({employee.pin})
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
       {selectedRole === "MANAGER" ? (
         <fieldset className="flex flex-col gap-2 text-sm sm:col-span-2">
           <legend className="font-medium">Departemen yang dikelola</legend>

@@ -11,6 +11,8 @@ const detail = {
   employeeId: true,
   employee: { select: { name: true, pin: true } },
   managedDepartments: { where: { deletedAt: null }, select: { id: true } },
+  customerId: true,
+  customer: { select: { name: true } },
 } as const;
 
 export type UserRow = Prisma.UserGetPayload<{ select: typeof detail }>;
@@ -50,6 +52,11 @@ export async function countDepartments(ids: string[], db: Db = prisma) {
   return db.department.count({ where: { id: { in: ids }, deletedAt: null } });
 }
 
+export async function customerIsActive(id: string, db: Db = prisma) {
+  const row = await db.customer.findFirst({ where: { id, deletedAt: null }, select: { id: true } });
+  return row !== null;
+}
+
 export async function employeeIsFree(employeeId: string, userId: string | null, db: Db = prisma) {
   const employee = await db.employee.findFirst({
     where: { id: employeeId, deletedAt: null },
@@ -70,6 +77,7 @@ export async function insertUser(
     isActive: boolean;
     employeeId: string | null;
     managedDepartmentIds: string[];
+    customerId: string | null;
   },
 ) {
   try {
@@ -80,6 +88,7 @@ export async function insertUser(
         passwordHash: data.passwordHash,
         role: data.role,
         isActive: data.isActive,
+        customer: data.role === "CUSTOMER" && data.customerId ? { connect: { id: data.customerId } } : undefined,
         employee: data.employeeId ? { connect: { id: data.employeeId } } : undefined,
         managedDepartments:
           data.role === "MANAGER" ? { connect: data.managedDepartmentIds.map((id) => ({ id })) } : undefined,
@@ -102,9 +111,17 @@ export async function updateUser(
     isActive: boolean;
     employeeId: string | null;
     managedDepartmentIds: string[];
+    customerId: string | null;
   },
 ) {
   try {
+    const current = await db.user.findUnique({ where: { id }, select: { customerId: true } });
+    const customer =
+      data.role === "CUSTOMER" && data.customerId
+        ? { connect: { id: data.customerId } }
+        : current?.customerId
+          ? { disconnect: true as const }
+          : undefined;
     return await db.user.update({
       where: { id },
       data: {
@@ -113,6 +130,7 @@ export async function updateUser(
         ...(data.passwordHash ? { passwordHash: data.passwordHash } : {}),
         role: data.role,
         isActive: data.isActive,
+        ...(customer ? { customer } : {}),
         employee: data.employeeId ? { connect: { id: data.employeeId } } : { disconnect: true },
         managedDepartments: {
           set: data.role === "MANAGER" ? data.managedDepartmentIds.map((departmentId) => ({ id: departmentId })) : [],
@@ -126,9 +144,16 @@ export async function updateUser(
 }
 
 export async function softDeleteUser(db: Db, id: string) {
+  const current = await db.user.findUnique({ where: { id }, select: { customerId: true, employeeId: true } });
   return db.user.update({
     where: { id },
-    data: { deletedAt: new Date(), isActive: false, employeeId: null, managedDepartments: { set: [] } },
+    data: {
+      deletedAt: new Date(),
+      isActive: false,
+      ...(current?.employeeId ? { employee: { disconnect: true } } : {}),
+      ...(current?.customerId ? { customer: { disconnect: true } } : {}),
+      managedDepartments: { set: [] },
+    },
     select: detail,
   });
 }

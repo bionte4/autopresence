@@ -110,7 +110,7 @@ export async function replaceReviewers(
 
 export async function listReviewerOptions(db: Db = prisma) {
   return db.user.findMany({
-    where: { isActive: true, deletedAt: null, role: { not: "AUDITOR" } },
+    where: { isActive: true, deletedAt: null, role: { notIn: ["AUDITOR", "CUSTOMER"] } },
     orderBy: { name: "asc" },
     select: { id: true, name: true, email: true },
     take: 200,
@@ -120,7 +120,7 @@ export async function listReviewerOptions(db: Db = prisma) {
 export async function countActiveUsers(ids: string[], db: Db = prisma) {
   const unique = [...new Set(ids)];
   if (unique.length === 0) return 0;
-  return db.user.count({ where: { id: { in: unique }, isActive: true, deletedAt: null, role: { not: "AUDITOR" } } });
+  return db.user.count({ where: { id: { in: unique }, isActive: true, deletedAt: null, role: { notIn: ["AUDITOR", "CUSTOMER"] } } });
 }
 
 export async function listDepartmentOptions(db: Db = prisma) {

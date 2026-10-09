@@ -1,5 +1,5 @@
 import { AppShell, type ShellLink } from "@/components/shell/app-shell";
-import { can, type AuthUser } from "@/modules/rbac/policy";
+import { can, isCustomerViewer, type AuthUser } from "@/modules/rbac/policy";
 
 export function MasterFrame({
   title,
@@ -10,15 +10,16 @@ export function MasterFrame({
   user: AuthUser;
   children: React.ReactNode;
 }) {
+  const customer = isCustomerViewer(user);
   const links: ShellLink[] = [
     can(user, "attendance.read") ? { href: "/dashboard", label: "Dasbor", group: "main" } : null,
     can(user, "upload.read") ? { href: "/uploads", label: "Unggah", group: "main" } : null,
     can(user, "anomaly.read") ? { href: "/anomalies", label: "Anomali", group: "main" } : null,
     can(user, "upload.read") ? { href: "/monitoring", label: "Pemantauan", group: "main" } : null,
-    can(user, "attendance.read") ? { href: "/corrections", label: "Koreksi", group: "main" } : null,
-    can(user, "attendance.read") ? { href: "/timesheet", label: "Timesheet", group: "main" } : null,
-    can(user, "attendance.read") ? { href: "/requests", label: "Pengajuan", group: "main" } : null,
-    can(user, "attendance.read") ? { href: "/reports", label: "Laporan", group: "main" } : null,
+    !customer && can(user, "attendance.read") ? { href: "/corrections", label: "Koreksi", group: "main" } : null,
+    !customer && can(user, "attendance.read") ? { href: "/timesheet", label: "Timesheet", group: "main" } : null,
+    !customer && can(user, "attendance.read") ? { href: "/requests", label: "Pengajuan", group: "main" } : null,
+    !customer && can(user, "attendance.read") ? { href: "/reports", label: "Laporan", group: "main" } : null,
     can(user, "department.manage") ? { href: "/master/customers", label: "Pelanggan", group: "data" } : null,
     can(user, "department.manage") ? { href: "/master/projects", label: "Proyek", group: "data" } : null,
     can(user, "department.manage") ? { href: "/master/departments", label: "Departemen", group: "data" } : null,

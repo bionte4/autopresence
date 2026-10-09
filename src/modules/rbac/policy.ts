@@ -32,6 +32,8 @@ export type AuthUser = {
   role: Role;
   employeeId: string | null;
   managedDepartmentIds: string[];
+  /** Departments of the customer's active projects. Loaded at login for CUSTOMER. */
+  customerDepartmentIds?: string[];
   reviewSeats?: ReadonlyArray<{ departmentId: string; seat: ReviewSeat }>;
 };
 
@@ -57,7 +59,7 @@ const ALLOWED: Record<Action, readonly Role[]> = {
   "upload.read": ["SUPER_ADMIN", "HR_ADMIN", "AUDITOR"],
   "upload.download": ["SUPER_ADMIN", "HR_ADMIN", "AUDITOR"],
   "upload.delete": ["SUPER_ADMIN", "HR_ADMIN"],
-  "attendance.read": ["SUPER_ADMIN", "HR_ADMIN", "MANAGER", "AUDITOR", "EMPLOYEE"],
+  "attendance.read": ["SUPER_ADMIN", "HR_ADMIN", "MANAGER", "AUDITOR", "EMPLOYEE", "CUSTOMER"],
   "correction.create": ["SUPER_ADMIN", "HR_ADMIN", "MANAGER", "EMPLOYEE"],
   "correction.review": ["SUPER_ADMIN", "HR_ADMIN", "MANAGER", "EMPLOYEE"],
   "request.create": ["SUPER_ADMIN", "HR_ADMIN", "MANAGER", "EMPLOYEE"],
@@ -78,9 +80,15 @@ export function can(user: AuthUser, action: Action, resource?: Resource): boolea
   return resourceAllows(user, action, resource);
 }
 
+/** A customer account only reads the attendance dashboard for its own projects. */
+export function isCustomerViewer(user: AuthUser): boolean {
+  return user.role === "CUSTOMER";
+}
+
 /**
  * Row scope for list/detail queries.
- * EMPLOYEE without a linked employee sees nothing. MANAGER without departments sees nothing.
+ * EMPLOYEE without a linked employee sees nothing.
+ * MANAGER without departments, and CUSTOMER without project departments, see nothing.
  */
 export function scopeFor(user: AuthUser): DataScope {
   switch (user.role) {
@@ -92,6 +100,8 @@ export function scopeFor(user: AuthUser): DataScope {
       return { kind: "self", employeeId: user.employeeId };
     case "MANAGER":
       return { kind: "departments", departmentIds: user.managedDepartmentIds };
+    case "CUSTOMER":
+      return { kind: "departments", departmentIds: user.customerDepartmentIds ?? [] };
     default: {
       const unreachable: never = user.role;
       return unreachable;

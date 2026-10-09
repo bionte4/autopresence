@@ -7,6 +7,7 @@ import { conflict, denied, invalid, missing, type ServiceResult } from "@/module
 import { can, type AuthUser } from "@/modules/rbac/policy";
 import {
   countDepartments,
+  customerIsActive,
   employeeIsFree,
   findUser,
   insertUser,
@@ -27,6 +28,8 @@ export type UserDto = {
   employeeName: string | null;
   employeePin: string | null;
   managedDepartmentIds: string[];
+  customerId: string | null;
+  customerName: string | null;
 };
 
 function toDto(row: UserRow): UserDto {
@@ -40,6 +43,8 @@ function toDto(row: UserRow): UserDto {
     employeeName: row.employee?.name ?? null,
     employeePin: row.employee?.pin ?? null,
     managedDepartmentIds: row.managedDepartments.map((department) => department.id),
+    customerId: row.customerId,
+    customerName: row.customer?.name ?? null,
   };
 }
 
@@ -48,9 +53,14 @@ function publicDiff(row: UserDto) {
 }
 
 async function validateLinks(
-  body: { employeeId: string | null; managedDepartmentIds: string[]; role: Role },
+  body: { employeeId: string | null; managedDepartmentIds: string[]; customerId: string | null; role: Role },
   userId: string | null,
 ) {
+  if (body.role === "CUSTOMER") {
+    if (!body.customerId) return "Pilih pelanggan untuk akun ini.";
+    if (!(await customerIsActive(body.customerId))) return "Pelanggan tidak ditemukan.";
+    return null;
+  }
   if (body.employeeId) {
     const state = await employeeIsFree(body.employeeId, userId);
     if (state === "missing") return "Pegawai tidak ditemukan.";
@@ -61,6 +71,17 @@ async function validateLinks(
     return "Departemen yang dipilih tidak ditemukan.";
   }
   return null;
+}
+
+function linksFor(body: { employeeId: string | null; managedDepartmentIds: string[]; customerId: string | null; role: Role }) {
+  if (body.role === "CUSTOMER") {
+    return { employeeId: null, managedDepartmentIds: [] as string[], customerId: body.customerId };
+  }
+  return {
+    employeeId: body.employeeId,
+    managedDepartmentIds: body.role === "MANAGER" ? body.managedDepartmentIds : [],
+    customerId: null,
+  };
 }
 
 export async function listUserPage(
@@ -97,8 +118,7 @@ export async function createUser(
         passwordHash,
         role: body.role,
         isActive: body.isActive,
-        employeeId: body.employeeId,
-        managedDepartmentIds: body.managedDepartmentIds,
+        ...linksFor(body),
       });
       await audit(
         {
@@ -144,8 +164,7 @@ export async function editUser(
         passwordHash,
         role: body.role,
         isActive: body.isActive,
-        employeeId: body.employeeId,
-        managedDepartmentIds: body.managedDepartmentIds,
+        ...linksFor(body),
       });
       await audit(
         {

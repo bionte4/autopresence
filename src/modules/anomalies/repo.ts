@@ -36,18 +36,26 @@ function scopedWhere(scope: DataScope, query: AnomalyListQuery): Prisma.AnomalyW
     ...(query.employeeId ? { employeeId: query.employeeId } : {}),
     ...(query.q ? { message: { contains: query.q, mode: "insensitive" } } : {}),
     // Undated findings are counted on the dashboard for the open period, so the list includes them too.
+    // A calendar day asks for that date only, and leaves file-level findings off the list.
     ...(query.from || query.to
-      ? {
-          OR: [
-            { date: null },
-            {
-              date: {
-                ...(query.from ? { gte: dateOnly(query.from) } : {}),
-                ...(query.to ? { lte: dateOnly(query.to) } : {}),
-              },
+      ? query.dated
+        ? {
+            date: {
+              ...(query.from ? { gte: dateOnly(query.from) } : {}),
+              ...(query.to ? { lte: dateOnly(query.to) } : {}),
             },
-          ],
-        }
+          }
+        : {
+            OR: [
+              { date: null },
+              {
+                date: {
+                  ...(query.from ? { gte: dateOnly(query.from) } : {}),
+                  ...(query.to ? { lte: dateOnly(query.to) } : {}),
+                },
+              },
+            ],
+          }
       : {}),
   };
 }

@@ -86,14 +86,19 @@ async function DashboardContent({
   const summary = "#ringkasan";
   const sortedSummary = (sort: DashboardLinkState["sort"]) => `${dashboardHref(state, { sort, direction: "desc", page: 1 })}${summary}`;
   const anomalyHref = can(user, "anomaly.read") ? openAnomalyHref(state) : undefined;
+  const customer = user.role === "CUSTOMER";
+  const toTable = (href: string) => (customer ? undefined : href);
   const kpis = [
-    { label: "Pegawai", value: String(data.kpis.employees), href: data.kpis.employees > 0 ? summary : undefined },
-    { label: "Kejadian terlambat", value: String(data.kpis.lateEvents), href: data.kpis.lateEvents > 0 ? sortedSummary("lateCount") : undefined },
-    { label: "Total jam telat", value: formatMinutes(data.kpis.lateMinutes), href: data.kpis.lateMinutes > 0 ? sortedSummary("lateMinutes") : undefined },
-    { label: "Kurang presensi", value: String(data.kpis.missingPunch), href: data.kpis.missingPunch > 0 ? sortedSummary("missingPunch") : undefined },
-    { label: "Tanpa keterangan", value: String(data.kpis.noReason), href: data.kpis.noReason > 0 ? sortedSummary("noReason") : undefined },
-    { label: "Anomali terbuka", value: String(data.kpis.openAnomalies), href: data.kpis.openAnomalies > 0 ? anomalyHref : undefined },
+    { label: "Pegawai", value: String(data.kpis.employees), href: data.kpis.employees > 0 ? toTable(summary) : undefined },
+    { label: "Kejadian terlambat", value: String(data.kpis.lateEvents), href: data.kpis.lateEvents > 0 ? toTable(sortedSummary("lateCount")) : undefined },
+    { label: "Total jam telat", value: formatMinutes(data.kpis.lateMinutes), href: data.kpis.lateMinutes > 0 ? toTable(sortedSummary("lateMinutes")) : undefined },
+    { label: "Kurang presensi", value: String(data.kpis.missingPunch), href: data.kpis.missingPunch > 0 ? toTable(sortedSummary("missingPunch")) : undefined },
+    { label: "Tanpa keterangan", value: String(data.kpis.noReason), href: data.kpis.noReason > 0 ? toTable(sortedSummary("noReason")) : undefined },
+    ...(customer
+      ? []
+      : [{ label: "Anomali terbuka", value: String(data.kpis.openAnomalies), href: data.kpis.openAnomalies > 0 ? anomalyHref : undefined }]),
   ];
+  const showDepartments = customer ? data.departments.length > 1 : data.departments.length > 0;
 
   return (
     <MasterFrame title="Dasbor" user={user}>
@@ -121,7 +126,7 @@ async function DashboardContent({
           Cari
           <input name="q" defaultValue={query.q} placeholder="Nama pegawai" className="field" />
         </label>
-        {data.departments.length > 0 ? (
+        {showDepartments ? (
           <label className="flex flex-col gap-1 text-xs text-ink-2">
             Departemen
             <select name="departmentId" defaultValue={query.departmentId ?? ""} className="field">
@@ -169,6 +174,7 @@ async function DashboardContent({
         <input type="hidden" name="grain" value={query.grain} />
       </form>
 
+      {customer ? null : (
       <IntegritySeal
         tone={data.kpis.openAnomalies > 0 ? "warn" : data.integrity ? "ok" : "warn"}
         title={
@@ -190,15 +196,18 @@ async function DashboardContent({
             : undefined
         }
       />
+      )}
 
-      <dl className="grid grid-cols-2 overflow-hidden rounded-xl border border-line bg-surface sm:grid-cols-3 lg:grid-cols-6">
+      <dl className={`grid grid-cols-2 overflow-hidden rounded-xl border border-line bg-surface sm:grid-cols-3 ${kpis.length > 5 ? "lg:grid-cols-6" : "lg:grid-cols-5"}`}>
         {kpis.map((kpi, index) => {
           const alert = kpi.label === "Anomali terbuka" && data.kpis.openAnomalies > 0;
+          const lastRowMobile = kpis.length - (kpis.length % 2 || 2);
+          const lastRowSm = kpis.length - (kpis.length % 3 || 3);
           const right = index % 2 === 0 ? "border-r" : "border-r-0";
-          const bottom = index < 4 ? "border-b" : "border-b-0";
+          const bottom = index < lastRowMobile ? "border-b" : "border-b-0";
           const smRight = index % 3 === 2 ? "sm:border-r-0" : "sm:border-r";
-          const smBottom = index < 3 ? "sm:border-b" : "sm:border-b-0";
-          const lgRight = index === 5 ? "lg:border-r-0" : "lg:border-r";
+          const smBottom = index < lastRowSm ? "sm:border-b" : "sm:border-b-0";
+          const lgRight = index === kpis.length - 1 ? "lg:border-r-0" : "lg:border-r";
           const figure = kpi.href ? (
             <Link href={kpi.href} className="rounded-sm underline-offset-4 outline-none hover:underline focus-visible:underline">
               {kpi.value}
@@ -303,7 +312,18 @@ async function DashboardContent({
       {data.heatmap ? (
         <section className="panel flex flex-col gap-3">
           <h2 className="font-semibold">Kalender keterlambatan</h2>
-          <Heatmap cells={data.heatmap} />
+          <Heatmap
+            cells={data.heatmap}
+            anomalyDates={data.anomalyDates}
+            anomalyHref={
+              data.heatmapEmployeeId && can(user, "anomaly.read")
+                ? (date) => `/anomalies?employeeId=${data.heatmapEmployeeId}&from=${date}&to=${date}&dated=1`
+                : undefined
+            }
+          />
+          {data.anomalyDates.length > 0 ? (
+            <p className="text-xs text-ink-2">Titik menandai hari yang punya anomali. Klik hari itu untuk membuka daftarnya.</p>
+          ) : null}
         </section>
       ) : (
         <p className="rounded-xl border border-dashed border-line px-4 py-3 text-center text-sm text-ink-2">
@@ -311,6 +331,16 @@ async function DashboardContent({
         </p>
       )}
 
+      {customer ? (
+        data.total === 0 ? (
+          <EmptyState title="Tidak ada pegawai pada filter ini. Hapus pencarian atau perluas periode." />
+        ) : (
+          <a href={exportHref(state)} className="self-start text-sm font-semibold text-primary">
+            Unduh Excel
+          </a>
+        )
+      ) : (
+      <>
       <div id="ringkasan" className="flex scroll-mt-24 flex-wrap items-end justify-between gap-3">
         <div>
           <h2 className="text-lg font-semibold">Ringkasan pegawai</h2>
@@ -385,6 +415,8 @@ async function DashboardContent({
           {data.page < pageCount ? <Link href={dashboardHref(state, { page: data.page + 1 })}>Berikutnya</Link> : null}
         </div>
       </nav>
+      </>
+      )}
     </MasterFrame>
   );
 }

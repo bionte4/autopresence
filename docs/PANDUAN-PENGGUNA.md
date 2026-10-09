@@ -25,6 +25,7 @@ Di layar lebar, **Cari halaman** atau pintasan Ctrl+K / Cmd+K mencari menu. Di p
 | Manajer | Data pegawai di departemen yang dikelolanya, plus anomali tingkat rendah dan sedang |
 | Peninjau | Pengajuan dan koreksi departemen tempat ia memegang kursi, selain data perannya |
 | Auditor | Melihat unggah, anomali, dasbor, dan audit. Tidak mengubah data |
+| Pelanggan | Dasbor proyeknya saja, berupa grafik: angka kehadiran, peringkat, tren, kalender, dan unduh Excel. Tanpa tabel ringkasan, tanpa PIN, dan tanpa anomali |
 | HR Admin dan Super Admin | Semua data operasional. Akun login hanya Super Admin |
 
 Pegawai yang akunnya belum ditautkan ke data pegawai tidak melihat baris kehadiran. Manajer yang belum ditunjuk pada departemen juga tidak melihat data tim.
@@ -45,9 +46,9 @@ Hari yang keterangannya diawali **cuti** atau **sakit** tidak dihitung sebagai k
 
 **Bandingkan periode** membandingkan keterlambatan periode yang sedang dibuka dengan rentang lain, misalnya minggu atau bulan sebelumnya. Isi **Pembanding dari** dan **Pembanding sampai**, lalu **Terapkan**. Kedua tanggal wajib diisi, tanggal dari tidak boleh sesudah tanggal sampai, dan rentangnya paling lama 366 hari. Angka di pita dasbor tidak berubah. Di bawahnya muncul jumlah kejadian terlambat dan jam telat pada rentang pembanding, plus selisih kejadian terhadap periode ini. Selisih positif berarti pembanding lebih banyak terlambat. Kosongkan kedua tanggal bila perbandingan tidak dipakai.
 
-Angka yang bukan nol bisa diklik. **Pegawai** menurunkan layar ke tabel. **Kejadian terlambat**, **Total jam telat**, **Kurang presensi**, dan **Tanpa keterangan** mengurutkan tabel itu. **Anomali terbuka** membuka daftar anomali yang masih terbuka pada periode yang sama. Angka nol tidak diklik.
+Angka yang bukan nol bisa diklik. **Pegawai** menurunkan layar ke tabel. **Kejadian terlambat**, **Total jam telat**, **Kurang presensi**, dan **Tanpa keterangan** mengurutkan tabel itu. **Anomali terbuka** membuka daftar anomali yang masih terbuka pada periode yang sama. Angka nol tidak diklik. Pelanggan tidak melihat tabel itu, jadi angkanya tidak diklik.
 
-Pilih departemen atau pegawai untuk mempersempit. Nama pegawai membuka kalender keterlambatannya. **Unduh Excel** pada tabel mengunduh rekap periode yang sedang tampil.
+Pilih departemen atau pegawai untuk mempersempit. Nama pegawai membuka kalender keterlambatannya. Pada kalender itu, hari yang punya anomali bertanda titik dan bisa diklik ke daftar anomali hari tersebut. Temuan tanpa tanggal tidak muncul di kalender. Pelanggan tidak melihat tanda itu. **Unduh Excel** pada tabel mengunduh rekap periode yang sedang tampil.
 
 **Lihat di dasbor** dari halaman berkas membuka dasbor dengan tanggal awal dan akhir berkas itu. Angkanya tetap seluruh absensi pada rentang tanggal, termasuk unggahan lain yang tumpang tindih dan koreksi yang sudah selesai.
 

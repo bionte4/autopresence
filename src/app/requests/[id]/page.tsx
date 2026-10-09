@@ -5,7 +5,7 @@ import { MasterFrame } from "@/app/master/master-frame";
 import { ReviewChain } from "@/components/domain/review-chain";
 import { formatCalendarDate, formatMinutes } from "@/lib/format";
 import { getCurrentUser } from "@/modules/auth/current-user";
-import { can } from "@/modules/rbac/policy";
+import { can, isCustomerViewer } from "@/modules/rbac/policy";
 import { canReviewRequest, getRequest } from "@/modules/requests/service";
 import { SEAT_LABEL } from "@/modules/review/chain";
 import { ReviewForm } from "../review-form";
@@ -25,7 +25,7 @@ async function Detail({ params }: { params: Promise<{ id: string }> }) {
   await connection();
   const user = await getCurrentUser();
   if (!user) redirect("/login");
-  if (!can(user, "attendance.read")) forbidden();
+  if (!can(user, "attendance.read") || isCustomerViewer(user)) forbidden();
   const { id } = await params;
   const result = await getRequest(user, id);
   if (!result.ok) notFound();

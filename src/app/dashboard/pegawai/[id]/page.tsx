@@ -73,7 +73,8 @@ async function EmployeeContent({
     <MasterFrame title={data.employee.name} user={user}>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-sm text-ink-2">
-          PIN {data.employee.pin} · {data.employee.departmentName ?? "Tanpa departemen"} · {formatCalendarDate(data.period.from)} s.d.{" "}
+          {user.role === "CUSTOMER" ? "" : `PIN ${data.employee.pin} · `}
+          {data.employee.departmentName ?? "Tanpa departemen"} · {formatCalendarDate(data.period.from)} s.d.{" "}
           {formatCalendarDate(data.period.to)}
         </p>
         <Link href={`/dashboard?from=${data.period.from}&to=${data.period.to}`} className="text-sm font-semibold text-primary">
@@ -99,7 +100,18 @@ async function EmployeeContent({
       </dl>
       <section className="panel flex flex-col gap-3">
         <h2 className="font-semibold">Kalender keterlambatan</h2>
-        <Heatmap cells={data.heatmap} />
+        <Heatmap
+          cells={data.heatmap}
+          anomalyDates={data.anomalyDates}
+          anomalyHref={
+            can(user, "anomaly.read")
+              ? (date) => `/anomalies?employeeId=${id}&from=${date}&to=${date}&dated=1`
+              : undefined
+          }
+        />
+        {data.anomalyDates.length > 0 ? (
+          <p className="text-xs text-ink-2">Titik menandai hari yang punya anomali. Klik hari itu untuk membuka daftarnya.</p>
+        ) : null}
       </section>
       {data.days.length === 0 ? (
         <p className="rounded-xl border border-dashed border-line px-4 py-3 text-center text-sm text-ink-2">Tidak ada baris absensi pada periode ini.</p>

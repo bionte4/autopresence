@@ -2,7 +2,7 @@ import type { Role, Severity } from "@prisma/client";
 import { describe, expect, it } from "vitest";
 import { ACTIONS, can, scopeFor, type Action, type AuthUser, type Resource } from "./policy";
 
-const ROLES: Role[] = ["SUPER_ADMIN", "HR_ADMIN", "MANAGER", "AUDITOR", "EMPLOYEE"];
+const ROLES: Role[] = ["SUPER_ADMIN", "HR_ADMIN", "MANAGER", "AUDITOR", "EMPLOYEE", "CUSTOMER"];
 
 const ALLOWED: Record<Action, readonly Role[]> = {
   "user.manage": ["SUPER_ADMIN"],
@@ -13,7 +13,7 @@ const ALLOWED: Record<Action, readonly Role[]> = {
   "upload.read": ["SUPER_ADMIN", "HR_ADMIN", "AUDITOR"],
   "upload.download": ["SUPER_ADMIN", "HR_ADMIN", "AUDITOR"],
   "upload.delete": ["SUPER_ADMIN", "HR_ADMIN"],
-  "attendance.read": ["SUPER_ADMIN", "HR_ADMIN", "MANAGER", "AUDITOR", "EMPLOYEE"],
+  "attendance.read": ["SUPER_ADMIN", "HR_ADMIN", "MANAGER", "AUDITOR", "EMPLOYEE", "CUSTOMER"],
   "correction.create": ["SUPER_ADMIN", "HR_ADMIN", "MANAGER", "EMPLOYEE"],
   "correction.review": ["SUPER_ADMIN", "HR_ADMIN", "MANAGER", "EMPLOYEE"],
   "request.create": ["SUPER_ADMIN", "HR_ADMIN", "MANAGER", "EMPLOYEE"],
@@ -35,6 +35,7 @@ function user(role: Role): AuthUser {
     role,
     employeeId: role === "EMPLOYEE" ? "emp-1" : null,
     managedDepartmentIds: role === "MANAGER" ? ["dept-1"] : [],
+    customerDepartmentIds: role === "CUSTOMER" ? ["dept-1"] : [],
     reviewSeats: [{ departmentId: "dept-1", seat: "TEAM_LEADER" }],
   };
 }
@@ -163,5 +164,13 @@ describe("scopeFor", () => {
 
   it("limits a manager to departments they manage", () => {
     expect(scopeFor(user("MANAGER"))).toEqual({ kind: "departments", departmentIds: ["dept-1"] });
+  });
+
+  it("limits a customer to departments on their projects", () => {
+    expect(scopeFor(user("CUSTOMER"))).toEqual({ kind: "departments", departmentIds: ["dept-1"] });
+    expect(scopeFor({ ...user("CUSTOMER"), customerDepartmentIds: [] })).toEqual({
+      kind: "departments",
+      departmentIds: [],
+    });
   });
 });

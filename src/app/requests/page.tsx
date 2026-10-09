@@ -7,7 +7,7 @@ import { MasterFrame } from "@/app/master/master-frame";
 import { getCurrentUser } from "@/modules/auth/current-user";
 import { formatCalendarDate } from "@/lib/format";
 import { firstParam } from "@/modules/master/query";
-import { can } from "@/modules/rbac/policy";
+import { can, isCustomerViewer } from "@/modules/rbac/policy";
 import { parseRequestListQuery, type RequestListQuery } from "@/modules/requests/schema";
 import { pendingLabel } from "@/modules/review/chain";
 import { canProposeRequest, listRequestPage } from "@/modules/requests/service";
@@ -47,7 +47,7 @@ async function RequestsContent({
   await connection();
   const user = await getCurrentUser();
   if (!user) redirect("/login");
-  if (!can(user, "attendance.read")) forbidden();
+  if (!can(user, "attendance.read") || isCustomerViewer(user)) forbidden();
   const raw = await searchParams;
   const query = parseRequestListQuery({
     page: firstParam(raw.page),

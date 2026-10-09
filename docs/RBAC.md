@@ -2,7 +2,7 @@
 
 Sumbernya `src/modules/rbac/policy.ts`. Setiap endpoint memeriksa `can(user, action, resource)` di server. Menyembunyikan menu bukan otorisasi.
 
-Peran: **Super Admin**, **HR Admin**, **Manajer**, **Auditor**, **Pegawai**.
+Peran: **Super Admin**, **HR Admin**, **Manajer**, **Auditor**, **Pegawai**, **Pelanggan**.
 
 Lingkup baris:
 
@@ -11,6 +11,7 @@ Lingkup baris:
 | Super Admin, HR Admin, Auditor | Semua |
 | Manajer | Pegawai di departemen yang dikelola. Tanpa departemen, tidak melihat apa pun. |
 | Pegawai | Baris dirinya sendiri. Tanpa tautan pegawai, tidak melihat apa pun. |
+| Pelanggan | Pegawai di departemen proyek pelanggannya. Tanpa proyek, tidak melihat apa pun. Hanya dasbor. |
 
 Pemegang kursi peninjau juga melihat pengajuan dan koreksi departemen kursinya, selain lingkup perannya.
 
@@ -18,28 +19,28 @@ Pemegang kursi peninjau juga melihat pengajuan dan koreksi departemen kursinya, 
 
 `✔` boleh. `—` tidak. Catatan di kolom terakhir mempersempit `✔`.
 
-| Aksi | Super Admin | HR Admin | Manajer | Auditor | Pegawai | Batasan |
-| --- | :-: | :-: | :-: | :-: | :-: | --- |
-| Kelola akun login | ✔ | — | — | — | — | |
-| Kelola pelanggan, proyek, departemen | ✔ | ✔ | — | — | — | Termasuk menunjuk kursi peninjau |
-| Kelola pegawai | ✔ | ✔ | — | — | — | |
-| Kelola jadwal kerja | ✔ | ✔ | — | — | — | |
-| Unggah laporan | ✔ | ✔ | — | — | — | |
-| Lihat daftar unggah | ✔ | ✔ | — | ✔ | — | |
-| Unduh berkas asli | ✔ | ✔ | — | ✔ | — | |
-| Hapus unggah | ✔ | ✔ | — | — | — | Ditolak jika sudah ada revisi atau koreksi |
-| Lihat absensi, dasbor, laporan | ✔ | ✔ | ✔ | ✔ | ✔ | Mengikuti lingkup baris |
-| Ajukan koreksi | ✔ | ✔ | ✔ | — | ✔ | Manajer: timnya. Pegawai: dirinya |
-| Setujui atau tolak koreksi | kursi | kursi | kursi | — | kursi | Lihat rantai peninjau |
-| Ajukan cuti, sakit, lembur | ✔ | ✔ | ✔ | — | ✔ | Manajer: timnya. Pegawai: dirinya |
-| Setujui atau tolak pengajuan | kursi | kursi | kursi | — | kursi | Lihat rantai peninjau |
-| Lihat anomali | ✔ | ✔ | ✔ | ✔ | — | Manajer: timnya |
-| Akui atau tutup anomali | ✔ | ✔ | ✔ | — | — | Manajer: timnya, hanya LOW dan MEDIUM |
-| Kelola aturan anomali | ✔ | ✔ | — | — | — | Izin ada; layar belum dibuat |
-| Kelola jadwal unggah | ✔ | ✔ | — | — | — | Auditor boleh membaca lewat daftar unggah |
-| Lihat audit | ✔ | — | — | ✔ | — | |
-| Verifikasi hash-chain | ✔ | — | — | ✔ | — | |
-| Notifikasi sendiri | ✔ | ✔ | ✔ | ✔ | ✔ | Giliran koreksi, cuti, sakit, dan lembur. Tidak bisa membaca milik orang lain |
+| Aksi | Super Admin | HR Admin | Manajer | Auditor | Pegawai | Pelanggan | Batasan |
+| --- | :-: | :-: | :-: | :-: | :-: | :-: | --- |
+| Kelola akun login | ✔ | — | — | — | — | — | |
+| Kelola pelanggan, proyek, departemen | ✔ | ✔ | — | — | — | — | Termasuk menunjuk kursi peninjau |
+| Kelola pegawai | ✔ | ✔ | — | — | — | — | |
+| Kelola jadwal kerja | ✔ | ✔ | — | — | — | — | |
+| Unggah laporan | ✔ | ✔ | — | — | — | — | |
+| Lihat daftar unggah | ✔ | ✔ | — | ✔ | — | — | |
+| Unduh berkas asli | ✔ | ✔ | — | ✔ | — | — | |
+| Hapus unggah | ✔ | ✔ | — | — | — | — | Ditolak jika sudah ada revisi atau koreksi |
+| Lihat absensi, dasbor, laporan | ✔ | ✔ | ✔ | ✔ | ✔ | dasbor | Pelanggan: grafik dasbor dan kalender pegawai, plus unduh Excel. Tanpa tabel ringkasan, tanpa PIN, dan tanpa anomali |
+| Ajukan koreksi | ✔ | ✔ | ✔ | — | ✔ | — | Manajer: timnya. Pegawai: dirinya |
+| Setujui atau tolak koreksi | kursi | kursi | kursi | — | kursi | — | Lihat rantai peninjau |
+| Ajukan cuti, sakit, lembur | ✔ | ✔ | ✔ | — | ✔ | — | Manajer: timnya. Pegawai: dirinya |
+| Setujui atau tolak pengajuan | kursi | kursi | kursi | — | kursi | — | Lihat rantai peninjau |
+| Lihat anomali | ✔ | ✔ | ✔ | ✔ | — | — | Manajer: timnya |
+| Akui atau tutup anomali | ✔ | ✔ | ✔ | — | — | — | Manajer: timnya, hanya LOW dan MEDIUM |
+| Kelola aturan anomali | ✔ | ✔ | — | — | — | — | Izin ada; layar belum dibuat |
+| Kelola jadwal unggah | ✔ | ✔ | — | — | — | — | Auditor boleh membaca lewat daftar unggah |
+| Lihat audit | ✔ | — | — | ✔ | — | — | |
+| Verifikasi hash-chain | ✔ | — | — | ✔ | — | — | |
+| Notifikasi sendiri | ✔ | ✔ | ✔ | ✔ | ✔ | — | Giliran koreksi, cuti, sakit, dan lembur. Tidak bisa membaca milik orang lain |
 
 ## Rantai peninjau
 
@@ -55,7 +56,7 @@ Kursi ditunjuk per departemen oleh Super Admin atau HR Admin. Peran login tidak 
 - Kursi kosong menghentikan rantai sampai diisi.
 - Penolakan di tahap mana pun menutup pengajuan. Absensi belum berubah.
 - Cuti, sakit, lembur, dan koreksi baru diterapkan setelah Project Manager menyetujui.
-- Auditor tidak pernah menyetujui, walaupun namanya dipasang pada kursi.
+- Auditor dan Pelanggan tidak pernah menyetujui, walaupun namanya dipasang pada kursi. Pelanggan juga tidak muncul di pilihan kursi.
 
 ## CRUD
 

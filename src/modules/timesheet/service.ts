@@ -1,7 +1,7 @@
 import { listApprovedOvertime } from "@/modules/requests/repo";
 import { getEmployeeDashboard, type EmployeeDashboardDto } from "@/modules/dashboard/service";
 import { denied, type ServiceResult } from "@/modules/master/result";
-import { can, type AuthUser } from "@/modules/rbac/policy";
+import { can, isCustomerViewer, type AuthUser } from "@/modules/rbac/policy";
 import { dateOnly, isoDate } from "@/modules/uploads/dates";
 import { timesheetWorkbook, type TimesheetRow } from "./sheet";
 
@@ -14,7 +14,7 @@ export async function getTimesheet(
   employeeId: string,
   period: { from: string; to: string },
 ): Promise<ServiceResult<TimesheetDto>> {
-  if (!can(actor, "attendance.read")) return denied();
+  if (!can(actor, "attendance.read") || isCustomerViewer(actor)) return denied();
   const board = await getEmployeeDashboard(actor, employeeId, period);
   if (!board.ok) return board;
   const overtime = await listApprovedOvertime(employeeId, dateOnly(period.from), dateOnly(period.to));

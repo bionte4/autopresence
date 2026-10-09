@@ -29,6 +29,7 @@ function pageHref(query: AnomalyListQuery, patch: Partial<AnomalyListQuery>): st
   if (next.departmentId) params.set("departmentId", next.departmentId);
   if (next.from) params.set("from", next.from);
   if (next.to) params.set("to", next.to);
+  if (next.dated) params.set("dated", "1");
   params.set("sort", next.sort);
   params.set("direction", next.direction);
   if (next.page > 1) params.set("page", String(next.page));
@@ -68,8 +69,10 @@ async function AnomaliesContent({
       severity: firstParam(raw.severity),
       type: firstParam(raw.type),
       employeeId: firstParam(raw.employeeId),
+      departmentId: firstParam(raw.departmentId),
       from: firstParam(raw.from),
       to: firstParam(raw.to),
+      dated: firstParam(raw.dated),
     });
   } catch (error) {
     if (error instanceof ZodError) {
@@ -140,6 +143,7 @@ async function AnomaliesContent({
           <input type="date" name="to" defaultValue={query.to ?? ""} className="field font-normal" />
         </label>
         {query.departmentId ? <input type="hidden" name="departmentId" value={query.departmentId} /> : null}
+        {query.dated ? <input type="hidden" name="dated" value="1" /> : null}
         <button type="submit" className="btn justify-self-start self-end">Terapkan</button>
       </form>
       {data.total === 0 ? (

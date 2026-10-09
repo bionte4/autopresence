@@ -3,7 +3,7 @@ import { transaction, type Db } from "@/lib/prisma";
 import { audit } from "@/modules/audit/service";
 import { visiblePage } from "@/modules/master/query";
 import { conflict, denied, invalid, missing, type ServiceResult } from "@/modules/master/result";
-import { can, heldDepartmentIds, reviewsDepartment, scopeFor, type AuthUser } from "@/modules/rbac/policy";
+import { can, heldDepartmentIds, isCustomerViewer, reviewsDepartment, scopeFor, type AuthUser } from "@/modules/rbac/policy";
 import { notifyRequester, notifySeatHolder } from "@/modules/notify/review";
 import { chainSteps, openingSeat, seatAfterApproval, type ChainStep } from "@/modules/review/chain";
 import { guardSeat } from "@/modules/review/guard";
@@ -110,7 +110,7 @@ export async function listRequestPage(actor: AuthUser, query: RequestListQuery):
     employees: Array<{ id: string; name: string; pin: string }>;
   }>
 > {
-  if (!can(actor, "attendance.read")) return denied();
+  if (!can(actor, "attendance.read") || isCustomerViewer(actor)) return denied();
   const scope = scopeFor(actor);
   const { total, rows } = await listRequests(scope, query, heldDepartmentIds(actor));
   const page = visiblePage(query.page, query.pageSize, total);
@@ -128,7 +128,7 @@ export async function listRequestPage(actor: AuthUser, query: RequestListQuery):
 }
 
 export async function getRequest(actor: AuthUser, id: string): Promise<ServiceResult<RequestDto>> {
-  if (!can(actor, "attendance.read")) return denied();
+  if (!can(actor, "attendance.read") || isCustomerViewer(actor)) return denied();
   const row = await findRequest(id);
   if (!row || !visible(actor, row.employee.id, row.employee.departmentId)) return missing("Pengajuan tidak ditemukan.");
   return {

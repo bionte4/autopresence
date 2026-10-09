@@ -14,6 +14,7 @@ enum Role {
   MANAGER
   AUDITOR
   EMPLOYEE
+  CUSTOMER
 }
 
 enum Granularity {
@@ -109,14 +110,19 @@ model User {
   reviewedAttendance   AttendanceRequest[] @relation("AttendanceReviewer")
   departmentSeats      DepartmentReviewer[]
   reviewDecisions      ReviewDecision[]    @relation("DecisionReviewer")
+  customerId           String?
+  customer             Customer? @relation(fields: [customerId], references: [id])
   deletedAt            DateTime?
   createdAt            DateTime  @default(now())
+
+  @@index([customerId])
 }
 
 model Customer {
   id        String    @id @default(cuid())
   name      String    @unique
   projects  Project[]
+  viewers   User[]
   deletedAt DateTime?
   createdAt DateTime  @default(now())
 }

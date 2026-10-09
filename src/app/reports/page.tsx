@@ -5,7 +5,7 @@ import { MasterFrame } from "@/app/master/master-frame";
 import { getCurrentUser } from "@/modules/auth/current-user";
 import { findDashboardEmployees, listDepartmentOptions } from "@/modules/dashboard/repo";
 import { suggestPeriod } from "@/modules/dashboard/service";
-import { can, scopeFor } from "@/modules/rbac/policy";
+import { can, isCustomerViewer, scopeFor } from "@/modules/rbac/policy";
 
 export default function ReportsPage() {
   return (
@@ -19,7 +19,7 @@ async function ReportsContent() {
   await connection();
   const user = await getCurrentUser();
   if (!user) redirect("/login");
-  if (!can(user, "attendance.read")) forbidden();
+  if (!can(user, "attendance.read") || isCustomerViewer(user)) forbidden();
   const scope = scopeFor(user);
   const [period, employees, departments] = await Promise.all([
     suggestPeriod(user),

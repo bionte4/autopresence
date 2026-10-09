@@ -9,7 +9,7 @@ import { parseCorrectionListQuery, type CorrectionListQuery } from "@/modules/co
 import { getCurrentUser } from "@/modules/auth/current-user";
 import { formatCalendarDate } from "@/lib/format";
 import { firstParam } from "@/modules/master/query";
-import { can } from "@/modules/rbac/policy";
+import { can, isCustomerViewer } from "@/modules/rbac/policy";
 import { pendingLabel } from "@/modules/review/chain";
 
 const STATUS_LABEL = { PENDING: "Menunggu", APPROVED: "Disetujui", REJECTED: "Ditolak" } as const;
@@ -45,7 +45,7 @@ async function CorrectionsContent({
   await connection();
   const user = await getCurrentUser();
   if (!user) redirect("/login");
-  if (!can(user, "attendance.read")) forbidden();
+  if (!can(user, "attendance.read") || isCustomerViewer(user)) forbidden();
   const raw = await searchParams;
   const query = parseCorrectionListQuery({
     page: firstParam(raw.page),

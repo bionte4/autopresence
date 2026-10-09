@@ -27,7 +27,7 @@ Buka departemen, lalu isi tiga kursi:
 | Operation Manager | Kedua |
 | Project Manager | Terakhir |
 
-Pilih akun yang aktif dan bukan Auditor. Satu orang boleh memegang lebih dari satu kursi, tetapi ia harus menyetujui tiap tahap secara terpisah. Kursi kosong membuat koreksi dan pengajuan departemen itu berhenti dengan pesan bahwa kursi belum ada.
+Pilih akun yang aktif dan bukan Auditor atau Pelanggan. Satu orang boleh memegang lebih dari satu kursi, tetapi ia harus menyetujui tiap tahap secara terpisah. Kursi kosong membuat koreksi dan pengajuan departemen itu berhenti dengan pesan bahwa kursi belum ada.
 
 Menunjuk manajer departemen mengatur lingkup data manajer. Itu terpisah dari kursi peninjau.
 
@@ -38,6 +38,7 @@ Hanya Super Admin, lewat **Akun login**.
 - Email unik, nama, peran, dan kata sandi awal.
 - Tautkan akun ke satu pegawai jika orang itu harus melihat absensinya sendiri.
 - Peran **Manajer** perlu juga ditunjuk pada departemen, kalau tidak ia tidak melihat data tim.
+- Peran **Pelanggan** wajib memilih satu pelanggan. Akun itu hanya membuka dasbor pegawai pada departemen proyek pelanggan tersebut. Proyek dan departemen harus sudah dihubungkan. Akun ini tidak ditautkan ke pegawai dan tidak bisa duduk di kursi peninjau.
 - Menonaktifkan akun melepas tautan pegawai. Akun tidak dihapus permanen.
 
 Jangan memakai kata sandi bawaan pengembangan di lingkungan sungguhan.

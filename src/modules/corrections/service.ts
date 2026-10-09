@@ -3,7 +3,7 @@ import { transaction } from "@/lib/prisma";
 import { audit } from "@/modules/audit/service";
 import { visiblePage } from "@/modules/master/query";
 import { conflict, denied, invalid, missing, type ServiceResult } from "@/modules/master/result";
-import { can, heldDepartmentIds, reviewsDepartment, scopeFor, type AuthUser } from "@/modules/rbac/policy";
+import { can, heldDepartmentIds, isCustomerViewer, reviewsDepartment, scopeFor, type AuthUser } from "@/modules/rbac/policy";
 import { notifyRequester, notifySeatHolder } from "@/modules/notify/review";
 import { chainSteps, openingSeat, seatAfterApproval, type ChainStep } from "@/modules/review/chain";
 import { guardSeat } from "@/modules/review/guard";
@@ -93,7 +93,7 @@ export async function listCorrectionPage(
     records: Array<{ id: string; employeeName: string; date: string; clockInMin: number | null; clockOutMin: number | null }>;
   }>
 > {
-  if (!can(actor, "attendance.read")) return denied();
+  if (!can(actor, "attendance.read") || isCustomerViewer(actor)) return denied();
   const scope = scopeFor(actor);
   const departments = heldDepartmentIds(actor);
   const [{ total, rows }, records] = await Promise.all([
@@ -121,7 +121,7 @@ export async function listCorrectionPage(
 }
 
 export async function getCorrection(actor: AuthUser, id: string): Promise<ServiceResult<CorrectionDto>> {
-  if (!can(actor, "attendance.read")) return denied();
+  if (!can(actor, "attendance.read") || isCustomerViewer(actor)) return denied();
   const row = await findCorrection(id);
   if (!row || !inScope(actor, row.record.employeeId, row.record.employee.departmentId)) {
     return missing("Koreksi tidak ditemukan.");

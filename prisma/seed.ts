@@ -80,6 +80,18 @@ async function main(): Promise<void> {
     create: { name: "BI - DIDD" },
   });
 
+  const bankIndonesia = await prisma.customer.upsert({
+    where: { name: "Bank Indonesia" },
+    update: { deletedAt: null },
+    create: { name: "Bank Indonesia" },
+  });
+  const diddProject = await prisma.project.upsert({
+    where: { customerId_name: { customerId: bankIndonesia.id, name: "DIDD" } },
+    update: { deletedAt: null },
+    create: { name: "DIDD", customerId: bankIndonesia.id },
+  });
+  await prisma.department.update({ where: { id: didd.id }, data: { projectId: diddProject.id } });
+
   for (const staff of SEED_STAFF) {
     const employee = await prisma.employee.upsert({
       where: { pin: staff.pin },
@@ -166,8 +178,29 @@ async function main(): Promise<void> {
     });
   }
 
+  await prisma.user.upsert({
+    where: { email: "pelanggan@local" },
+    update: {
+      name: "Pelanggan BI",
+      role: Role.CUSTOMER,
+      isActive: true,
+      passwordHash,
+      customerId: bankIndonesia.id,
+      employeeId: null,
+      deletedAt: null,
+      managedDepartments: { set: [] },
+    },
+    create: {
+      email: "pelanggan@local",
+      name: "Pelanggan BI",
+      role: Role.CUSTOMER,
+      passwordHash,
+      customerId: bankIndonesia.id,
+    },
+  });
+
   console.log("Seed complete:", {
-    users: SEED_USERS.length + SEED_STAFF.length,
+    users: SEED_USERS.length + SEED_STAFF.length + 1,
     departments: 3,
     schedule: schedule.name,
     rules: rules.length,

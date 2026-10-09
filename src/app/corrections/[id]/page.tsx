@@ -7,7 +7,7 @@ import { ReviewChain } from "@/components/domain/review-chain";
 import { getCorrection } from "@/modules/corrections/service";
 import { getCurrentUser } from "@/modules/auth/current-user";
 import { formatCalendarDate, formatMinutes } from "@/lib/format";
-import { can } from "@/modules/rbac/policy";
+import { can, isCustomerViewer } from "@/modules/rbac/policy";
 import { SEAT_LABEL } from "@/modules/review/chain";
 
 const STATUS_LABEL = { PENDING: "Menunggu", APPROVED: "Disetujui", REJECTED: "Ditolak" } as const;
@@ -28,7 +28,7 @@ async function CorrectionDetail({ params }: { params: Promise<{ id: string }> })
   await connection();
   const user = await getCurrentUser();
   if (!user) redirect("/login");
-  if (!can(user, "attendance.read")) forbidden();
+  if (!can(user, "attendance.read") || isCustomerViewer(user)) forbidden();
   const { id } = await params;
   const result = await getCorrection(user, id);
   if (!result.ok) notFound();

@@ -7,6 +7,7 @@ import { MasterFrame } from "@/app/master/master-frame";
 import { EmptyState } from "@/components/domain/empty-state";
 import { ROLE_LABEL } from "@/lib/labels";
 import { getCurrentUser } from "@/modules/auth/current-user";
+import { customerChoices } from "@/modules/customers/service";
 import { departmentChoices } from "@/modules/departments/service";
 import { employeeChoices } from "@/modules/employees/service";
 import { firstParam, parseListQuery } from "@/modules/master/query";
@@ -46,17 +47,18 @@ async function UsersContent({
     ["name", "email"],
     "name",
   );
-  const [result, departments, employees] = await Promise.all([
+  const [result, departments, employees, customers] = await Promise.all([
     listUserPage(user, query),
     departmentChoices(user),
     employeeChoices(user),
+    customerChoices(user),
   ]);
-  if (!result.ok || !departments.ok || !employees.ok) forbidden();
+  if (!result.ok || !departments.ok || !employees.ok || !customers.ok) forbidden();
   const pageCount = Math.max(1, Math.ceil(result.data.total / result.data.pageSize));
 
   return (
     <MasterFrame title="Akun login" user={user}>
-      <UserForm departments={departments.data} employees={employees.data} />
+      <UserForm departments={departments.data} employees={employees.data} customers={customers.data} />
       {result.data.total === 0 ? (
         <EmptyState title="Belum ada akun login." />
       ) : (
@@ -67,7 +69,11 @@ async function UsersContent({
                 <span className="font-semibold">{item.name}</span> · {item.email} · {ROLE_LABEL[item.role]}
                 {item.isActive ? "" : " · nonaktif"}
                 <span className="block text-ink-2">
-                  {item.employeeName ? `${item.employeeName} · PIN ${item.employeePin}` : "Tidak ditautkan ke pegawai"}
+                  {item.role === "CUSTOMER"
+                    ? (item.customerName ?? "Pelanggan belum dipilih")
+                    : item.employeeName
+                      ? `${item.employeeName} · PIN ${item.employeePin}`
+                      : "Tidak ditautkan ke pegawai"}
                 </span>
               </span>
               <Link href={`/admin/users/${item.id}`} className="underline">

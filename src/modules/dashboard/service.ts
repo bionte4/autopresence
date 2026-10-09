@@ -1,6 +1,6 @@
 import { visiblePage } from "@/modules/master/query";
 import { denied, missing, type ServiceResult } from "@/modules/master/result";
-import { can, scopeFor, type AuthUser, type DataScope } from "@/modules/rbac/policy";
+import { can, isCustomerViewer, scopeFor, type AuthUser, type DataScope } from "@/modules/rbac/policy";
 import { isoDate } from "@/modules/uploads/dates";
 import {
   heatmap,
@@ -22,6 +22,7 @@ import {
 import { attendanceWorkbook } from "./sheet";
 import {
   countOpenAnomalies,
+  findAnomalyDates,
   findAttendanceInRange,
   findDashboardEmployees,
   findEmployeeInScope,
@@ -38,6 +39,8 @@ export type DashboardDto = {
   comparison: { lateEvents: number; lateMinutes: number; missingPunch: number; noReason: number } | null;
   trend: TrendPoint[];
   heatmap: HeatCell[] | null;
+  heatmapEmployeeId: string | null;
+  anomalyDates: string[];
   ranking: EmployeeSummary[];
   rows: EmployeeSummary[];
   page: number;
@@ -72,6 +75,7 @@ export type EmployeeDashboardDto = {
     noReason: boolean;
   }>;
   heatmap: HeatCell[];
+  anomalyDates: string[];
 };
 
 type ScopeDecision = { ok: true; scope: DataScope } | { ok: false; error: ServiceResult<never> };
@@ -172,6 +176,7 @@ export async function getDashboard(actor: AuthUser, query: DashboardQuery): Prom
     departmentId: query.departmentId,
     employeeId: query.employeeId,
     q: query.q,
+    matchPin: !isCustomerViewer(actor),
   };
   const [{ summaries, rows, openAnomalies }, options, departments, integrity] = await Promise.all([
     loadSlice(filter, query.from, query.to, includeUnassigned),
@@ -187,9 +192,8 @@ export async function getDashboard(actor: AuthUser, query: DashboardQuery): Prom
   const sorted = sortSummaries(summaries, query.sort, query.direction);
   const page = visiblePage(query.page, query.pageSize, sorted.length);
   const single = summaries.length === 1 ? summaries[0] : undefined;
-  return {
-    ok: true,
-    data: {
+  const anomalyDates = single && can(actor, "anomaly.read") ? await findAnomalyDates(single.employeeId, query.from, query.to) : [];
+  const data: DashboardDto = {
       period: { from: query.from, to: query.to },
       compare: query.compareFrom && query.compareTo ? { from: query.compareFrom, to: query.compareTo } : null,
       kpis,
@@ -203,6 +207,8 @@ export async function getDashboard(actor: AuthUser, query: DashboardQuery): Prom
         : null,
       trend: trend(rows, query.grain),
       heatmap: single ? heatmap(query.from, query.to, rows.filter((row) => row.employeeId === single.employeeId)) : null,
+      heatmapEmployeeId: single?.employeeId ?? null,
+      anomalyDates,
       ranking: topLate(summaries),
       rows: sorted.slice((page - 1) * query.pageSize, page * query.pageSize),
       page,
@@ -221,7 +227,24 @@ export async function getDashboard(actor: AuthUser, query: DashboardQuery): Prom
         : null,
       departments,
       employees: options.map((employee) => ({ id: employee.id, name: employee.name, pin: employee.pin })),
-    },
+  };
+  return { ok: true, data: presentDashboard(actor, data) };
+}
+
+function hidePin<T extends { pin: string }>(row: T): T {
+  return { ...row, pin: "" };
+}
+
+/** The customer dashboard is attendance only: no file hash, no open-anomaly count, no PIN. */
+function presentDashboard(actor: AuthUser, data: DashboardDto): DashboardDto {
+  if (!isCustomerViewer(actor)) return data;
+  return {
+    ...data,
+    kpis: { ...data.kpis, openAnomalies: 0 },
+    integrity: null,
+    ranking: data.ranking.map(hidePin),
+    rows: data.rows.map(hidePin),
+    employees: data.employees.map(hidePin),
   };
 }
 
@@ -244,12 +267,14 @@ export async function getEmployeeDashboard(
   const rows = toDayRows(records, new Map([[employee.id, employee.schedule.lateToleranceMin]]));
   const summaries = summarizeEmployees([toRef(employee)], rows);
   const openAnomalies = await countOpenAnomalies([employee.id], period.from, period.to, false);
+  const anomalyDates = can(actor, "anomaly.read") ? await findAnomalyDates(employee.id, period.from, period.to) : [];
+  const ref = toRef(employee);
   return {
     ok: true,
     data: {
-      employee: toRef(employee),
+      employee: isCustomerViewer(actor) ? hidePin(ref) : ref,
       period,
-      kpis: summarizeKpis(summaries, openAnomalies),
+      kpis: summarizeKpis(summaries, isCustomerViewer(actor) ? 0 : openAnomalies),
       days: rows
         .slice()
         .sort((left, right) => left.date.localeCompare(right.date))
@@ -265,6 +290,7 @@ export async function getEmployeeDashboard(
           noReason: rowNoReason(row.note),
         })),
       heatmap: heatmap(period.from, period.to, rows),
+      anomalyDates,
     },
   };
 }
@@ -287,7 +313,7 @@ export async function exportAttendanceWorkbook(
     ok: true,
     data: {
       filename: `kehadiran-${query.from}-${query.to}.xlsx`,
-      body: attendanceWorkbook(sorted),
+      body: attendanceWorkbook(sorted, { includePin: !isCustomerViewer(actor) }),
     },
   };
 }

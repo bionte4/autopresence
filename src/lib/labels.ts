@@ -6,4 +6,5 @@ export const ROLE_LABEL: Record<Role, string> = {
   MANAGER: "Manajer",
   AUDITOR: "Auditor",
   EMPLOYEE: "Pegawai",
+  CUSTOMER: "Pelanggan",
 };

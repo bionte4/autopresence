@@ -10,7 +10,7 @@ import { findDashboardEmployees } from "@/modules/dashboard/repo";
 import { parseDashboardQuery } from "@/modules/dashboard/schema";
 import { suggestPeriod } from "@/modules/dashboard/service";
 import { firstParam } from "@/modules/master/query";
-import { can, scopeFor } from "@/modules/rbac/policy";
+import { can, isCustomerViewer, scopeFor } from "@/modules/rbac/policy";
 import { getTimesheet } from "@/modules/timesheet/service";
 
 function clock(value: number | null): string {
@@ -37,7 +37,7 @@ async function TimesheetContent({
   await connection();
   const user = await getCurrentUser();
   if (!user) redirect("/login");
-  if (!can(user, "attendance.read")) forbidden();
+  if (!can(user, "attendance.read") || isCustomerViewer(user)) forbidden();
   const raw = await searchParams;
   const scope = scopeFor(user);
   const employees = await findDashboardEmployees({ scope });
