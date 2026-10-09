@@ -39,7 +39,7 @@ export default function LoginPage() {
             <RedirectIfAuthenticated />
           </Suspense>
           <LoginForm />
-          <p className="mt-10 text-center text-xs text-ink-2">© 2026 Lintasarta · Project Bank Indonesia</p>
+          <p className="mt-10 text-center text-xs text-ink-2">© 2026 Lintasarta</p>
         </div>
       </section>
     </main>
