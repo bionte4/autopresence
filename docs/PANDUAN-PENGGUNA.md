@@ -94,8 +94,9 @@ Menu **Anomali** hanya untuk manajer, auditor, HR, dan Super Admin. Pegawai tida
 
 Setiap baris menjelaskan apa yang tidak cocok, pegawai atau seluruh berkas, dan tanggalnya. Arti tiap jenis ada di [jenis anomali](ANOMALI.md).
 
-- **Akui** menandai bahwa temuan sudah dilihat. Catatan opsional.
-- **Selesai** atau **Bukan masalah** menutup temuan. Catatan wajib.
+- **Tandai diketahui** menandai bahwa temuan sudah dilihat. Catatan opsional.
+- **Selesaikan** atau **Bukan masalah** menutup temuan. Catatan wajib.
+- **Kurang presensi keluar** berarti jam masuk ada, jam pulang kosong. **Kurang presensi masuk** berarti jam masuk kosong. Menutup temuan itu tidak mengisi jam.
 - Manajer hanya menutup tingkat rendah dan sedang pada timnya.
 - HR Admin dan Super Admin menutup semua tingkat.
 

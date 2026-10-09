@@ -13,10 +13,10 @@ Tingkat: **Rendah**, **Sedang**, **Tinggi**, **Kritis**. Manajer departemen menu
 | Jumlah hari tidak cocok | Sedang | Angka hari pada baris Total tidak sama dengan jumlah hari kerja |
 | Data berubah | Kritis | Hari yang sudah lengkap berbeda dari unggahan baru. Data lama tidak ditimpa. HR menyelesaikan bentrok ini |
 | Berkas duplikat | Rendah | Byte berkas yang sama sudah pernah diunggah. Unggahan kedua ditolak |
-| Kurang presensi | Rendah | Keterangan hari itu persis **kurang presensi masuk** atau **kurang presensi keluar** |
+| Kurang presensi | Rendah | Keterangan hari itu persis **kurang presensi masuk** (jam masuk kosong) atau **kurang presensi keluar** (jam pulang kosong). Lihat bagian di bawah |
 | Terlambat berulang | Sedang | Telat tercatat beberapa kali dalam satu periode. Ambang bawaan tiga kali, dihitung dari kolom telat |
 | Tanpa keterangan | Sedang | Hari kerja yang keterangannya persis **tanpa keterangan** |
-| Format tidak dikenal | Tinggi | Tata letak bukan Laporan Per Atribut. Berkas ditolak dan tidak ditebak |
+| Format tidak dikenal | Tinggi | Tata letak bukan Laporan Per Atribut, atau periode bukan rentang `7 Okt - 7 Okt 2026`. Satu tanggal seperti `7 Okt 2026` menolak seluruh berkas. Nama dan PIN yang sudah terisi tidak menyelamatkan unggahan |
 | Jenis periode tidak sesuai | Rendah | Panjang periode berkas tidak muat pada jenis yang dipilih saat unggah |
 | Metadata mencurigakan | Sedang | Pembuat dan pengubah berbeda, aplikasi bukan sumber asli, atau berkas diubah lebih dari sehari setelah dibuat |
 | PIN tidak terdaftar | Sedang | PIN belum ada di data pegawai dan tidak bisa dibuat karena jadwal bawaan tidak ada |
@@ -24,6 +24,25 @@ Tingkat: **Rendah**, **Sedang**, **Tinggi**, **Kritis**. Manajer departemen menu
 | Upload belum ada | Tinggi | Jadwal unggah sudah lewat dan berkas periode itu belum masuk |
 
 Keterangan yang tidak menimbulkan **Keterangan tidak dikenal**: libur, terlambat, kurang presensi masuk, kurang presensi keluar, dan tanpa keterangan. **Tanpa keterangan** tetap memunculkan temuannya sendiri.
+
+## Kurang presensi
+
+Temuan ini mencatat satu hari yang presensinya belum lengkap. Tingkatnya rendah. Menutupnya tidak mengubah jam.
+
+| Pesan | Artinya |
+| --- | --- |
+| Kurang presensi masuk | Hari kerja itu tidak punya jam masuk. Keterangan pada laporan persis **Kurang Presensi Masuk** |
+| Kurang presensi keluar | Hari kerja itu punya jam masuk, tetapi jam pulang kosong. Keterangan pada laporan persis **Kurang Presensi Keluar** |
+
+Contoh: jadwal 08:00–17:05, masuk 07:57, jam keluar kosong, keterangan **Kurang Presensi Keluar**. Dasbor tetap menghitung hari itu sebagai kurang presensi.
+
+Di halaman detail:
+
+- **Tandai diketahui** menandai bahwa temuan sudah dilihat. Status menjadi Diketahui dan tetap terbuka. Catatan bersifat opsional.
+- **Selesaikan** menutupnya karena perlu ditindaklanjuti. Catatan wajib.
+- **Bukan masalah** menutupnya karena tidak perlu diperbaiki. Catatan wajib.
+
+Jam yang hilang diperbaiki lewat **Koreksi**, setelah Team Leader, Operation Manager, dan Project Manager menyetujui. Menutup anomali saja tidak mengisi jam.
 
 Dasbor tidak menghitung kurang presensi untuk keterangan yang diawali cuti atau sakit. Pemeriksaan berkas tetap menandai keterangan itu sebagai tidak dikenal sampai daftar keterangan resmi diperluas.
 
