@@ -15,6 +15,7 @@ import { getDashboard, suggestPeriod } from "@/modules/dashboard/service";
 import { Heatmap } from "./heatmap";
 import { dashboardHref, exportHref, type DashboardLinkState } from "./links";
 import { TrendChart } from "./trend-chart";
+import { trendAxisLabel } from "./trend-label";
 
 export default function DashboardPage({
   searchParams,
@@ -95,7 +96,7 @@ async function DashboardContent({
     <MasterFrame title="Dasbor" user={user}>
       <form className="panel flex flex-col gap-3" action="/dashboard">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <p className="text-sm text-ink-2">
+          <p className="text-base font-semibold">
             {formatCalendarDate(data.period.from)} s.d. {formatCalendarDate(data.period.to)}
           </p>
           {can(user, "upload.create") ? (
@@ -142,7 +143,7 @@ async function DashboardContent({
           </select>
         </label>
         <div className="flex items-end">
-          <button type="submit" className="btn btn-primary w-full">
+          <button type="submit" className="btn btn-primary w-full sm:w-auto">
             Terapkan
           </button>
         </div>
@@ -187,15 +188,21 @@ async function DashboardContent({
         }
       />
 
-      <dl className="grid grid-cols-2 divide-line overflow-hidden rounded-xl border border-line bg-surface sm:grid-cols-3 lg:grid-cols-6">
-        {kpis.map(([label, value]) => (
-          <div key={label} className="border-b border-r border-line px-4 py-(--row-pad)">
-            <dt className="text-xs leading-5 text-ink-2">{label}</dt>
-            <dd className={`text-xl font-semibold ${label === "Anomali terbuka" && data.kpis.openAnomalies > 0 ? "text-danger" : ""}`}>
-              {value}
-            </dd>
-          </div>
-        ))}
+      <dl className="grid grid-cols-2 overflow-hidden rounded-xl border border-line bg-surface sm:grid-cols-3 lg:grid-cols-6">
+        {kpis.map(([label, value], index) => {
+          const alert = label === "Anomali terbuka" && data.kpis.openAnomalies > 0;
+          const right = index % 2 === 0 ? "border-r" : "border-r-0";
+          const bottom = index < 4 ? "border-b" : "border-b-0";
+          const smRight = index % 3 === 2 ? "sm:border-r-0" : "sm:border-r";
+          const smBottom = index < 3 ? "sm:border-b" : "sm:border-b-0";
+          const lgRight = index === 5 ? "lg:border-r-0" : "lg:border-r";
+          return (
+            <div key={label} className={`border-line px-4 py-4 ${right} ${bottom} ${smRight} ${smBottom} ${lgRight} lg:border-b-0 ${alert ? "bg-danger-soft" : ""}`}>
+              <dt className="text-xs leading-5 text-ink-2">{label}</dt>
+              <dd className={`text-2xl font-semibold tabular-nums tracking-tight ${alert ? "text-danger" : ""}`}>{value}</dd>
+            </div>
+          );
+        })}
       </dl>
 
       {data.comparison && data.compare ? (
@@ -209,25 +216,27 @@ async function DashboardContent({
       ) : null}
 
       <div className="grid items-start gap-(--stack) xl:grid-cols-2">
-      {data.rows.some((row) => row.lateCount > 0) ? (
+      {data.ranking.length > 0 ? (
         <section className="panel min-w-0">
           <h2 className="font-semibold">Peringkat keterlambatan</h2>
           <ul className="mt-4 flex flex-col gap-4">
-            {[...data.rows]
-              .filter((row) => row.lateCount > 0)
-              .sort((left, right) => right.lateMinutes - left.lateMinutes)
-              .slice(0, 5)
-              .map((row) => {
-                const max = Math.max(...data.rows.map((item) => item.lateMinutes), 1);
+            {data.ranking.map((row, index) => {
+                const max = Math.max(data.ranking[0]?.lateMinutes ?? 1, 1);
                 const width = Math.max(8, Math.round((row.lateMinutes / max) * 100));
                 return (
-                  <li key={row.employeeId} className="grid grid-cols-[minmax(0,1fr)_4.5rem] items-center gap-x-3 gap-y-1.5 text-sm">
-                    <span className="truncate font-semibold">{row.name}</span>
+                  <li key={row.employeeId} className="grid grid-cols-[1.25rem_minmax(0,1fr)_4.5rem] items-center gap-x-3 gap-y-1.5 text-sm">
+                    <span className="text-xs tabular-nums text-ink-2">{index + 1}</span>
+                    <span className="min-w-0">
+                      <Link href={`/dashboard/pegawai/${row.employeeId}?from=${data.period.from}&to=${data.period.to}`} className="block truncate font-semibold">
+                        {row.name}
+                      </Link>
+                      <span className="block truncate text-xs text-ink-2">{row.departmentName ?? "Tanpa departemen"}</span>
+                    </span>
                     <span className="text-right tabular-nums">
                       <span className="block font-semibold">{row.lateCount} kali</span>
                       <span className="text-xs text-ink-2">{formatMinutes(row.lateMinutes)}</span>
                     </span>
-                    <span className="col-span-2 h-1.5 rounded-full bg-surface-2">
+                    <span className="col-span-3 h-1.5 rounded-full bg-surface-2">
                       <span className="block h-1.5 rounded-full bg-primary" style={{ width: `${width}%` }} />
                     </span>
                   </li>
@@ -271,7 +280,7 @@ async function DashboardContent({
             <tbody>
               {data.trend.map((point) => (
                 <tr key={point.bucket} className="border-b border-line">
-                  <td className="py-2">{point.bucket}</td>
+                  <td className="py-2">{trendAxisLabel(point.bucket)}</td>
                   <td className="py-2">{point.lateEvents}</td>
                 </tr>
               ))}
@@ -282,19 +291,47 @@ async function DashboardContent({
       </div>
 
       {data.heatmap ? (
-        <section className="flex flex-col gap-3">
-          <h2 className="text-lg font-semibold">Kalender keterlambatan</h2>
+        <section className="panel flex flex-col gap-3">
+          <h2 className="font-semibold">Kalender keterlambatan</h2>
           <Heatmap cells={data.heatmap} />
         </section>
       ) : (
-        <p className="text-sm text-ink-2">Pilih satu pegawai untuk melihat kalender keterlambatan.</p>
+        <p className="rounded-xl border border-dashed border-line px-4 py-3 text-center text-sm text-ink-2">
+          Pilih satu pegawai untuk melihat kalender keterlambatan.
+        </p>
       )}
 
-      <div className="flex items-center justify-between gap-3">
-        <h2 className="text-lg font-semibold">Ringkasan pegawai</h2>
-        <a href={exportHref(state)} className="text-sm underline">
-          Unduh Excel
-        </a>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-semibold">Ringkasan pegawai</h2>
+          <p className="text-sm text-ink-2">{data.total} pegawai</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-wrap rounded-lg border border-line p-0.5 text-sm">
+            {(
+              [
+                ["name", "Nama"],
+                ["lateCount", "Telat"],
+                ["lateMinutes", "Total"],
+                ["missingPunch", "Kurang presensi"],
+                ["noReason", "Tanpa keterangan"],
+              ] as const
+            ).map(([sort, label]) => (
+              <Link
+                key={sort}
+                href={dashboardHref(state, { sort, direction: query.sort === sort && query.direction === "asc" ? "desc" : "asc", page: 1 })}
+                className={`rounded-md px-2 py-1 ${query.sort === sort ? "bg-primary-soft font-semibold text-primary" : "text-ink-2"}`}
+                aria-current={query.sort === sort ? "true" : undefined}
+              >
+                {label}
+                {query.sort === sort ? (query.direction === "asc" ? " ↑" : " ↓") : ""}
+              </Link>
+            ))}
+          </div>
+          <a href={exportHref(state)} className="text-sm font-semibold text-primary">
+            Unduh Excel
+          </a>
+        </div>
       </div>
       {data.total === 0 ? (
         <EmptyState title="Tidak ada pegawai pada filter ini. Hapus pencarian atau perluas periode." />
@@ -302,53 +339,33 @@ async function DashboardContent({
         <div className="overflow-x-auto rounded-xl border border-line bg-surface">
           <table className="w-full text-left text-sm">
             <thead>
-              <tr className="border-b border-line">
-                <th className="px-4 py-(--row-pad) font-medium">Nama</th>
-                <th className="px-4 py-(--row-pad) font-medium">Telat</th>
-                <th className="px-4 py-(--row-pad) font-medium">Total</th>
-                <th className="px-4 py-(--row-pad) font-medium">Kurang presensi</th>
-                <th className="px-4 py-(--row-pad) font-medium">Tanpa keterangan</th>
+              <tr className="border-b border-line bg-surface-2 text-xs text-ink-2">
+                <th className="px-4 py-3 font-medium">Nama</th>
+                <th className="px-4 py-3 text-right font-medium">Telat</th>
+                <th className="px-4 py-3 text-right font-medium">Total</th>
+                <th className="px-4 py-3 text-right font-medium">Kurang presensi</th>
+                <th className="px-4 py-3 text-right font-medium">Tanpa keterangan</th>
               </tr>
             </thead>
             <tbody>
               {data.rows.map((row) => (
-                <tr key={row.employeeId} className="border-b border-line">
+                <tr key={row.employeeId} className="border-b border-line last:border-b-0 hover:bg-surface-2">
                   <td className="px-4 py-(--row-pad)">
-                    <Link href={`/dashboard/pegawai/${row.employeeId}?from=${data.period.from}&to=${data.period.to}`} className="font-semibold">
+                    <Link href={`/dashboard/pegawai/${row.employeeId}?from=${data.period.from}&to=${data.period.to}`} className="font-semibold text-ink">
                       {row.name}
                     </Link>
                     <span className="block text-xs text-ink-2">{row.departmentName ?? "Tanpa departemen"}</span>
                   </td>
-                  <td className="px-4 py-(--row-pad) tabular-nums">{row.lateCount}</td>
-                  <td className="px-4 py-(--row-pad) tabular-nums">{formatMinutes(row.lateMinutes)}</td>
-                  <td className="px-4 py-(--row-pad) tabular-nums">{row.missingPunch}</td>
-                  <td className="px-4 py-(--row-pad) tabular-nums">{row.noReason}</td>
+                  <td className={`px-4 py-(--row-pad) text-right tabular-nums ${row.lateCount === 0 ? "text-ink-2" : "font-semibold"}`}>{row.lateCount}</td>
+                  <td className={`px-4 py-(--row-pad) text-right tabular-nums ${row.lateMinutes === 0 ? "text-ink-2" : "font-semibold"}`}>{formatMinutes(row.lateMinutes)}</td>
+                  <td className={`px-4 py-(--row-pad) text-right tabular-nums ${row.missingPunch === 0 ? "text-ink-2" : "font-semibold"}`}>{row.missingPunch}</td>
+                  <td className={`px-4 py-(--row-pad) text-right tabular-nums ${row.noReason === 0 ? "text-ink-2" : "font-semibold"}`}>{row.noReason}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       )}
-      <div className="flex flex-wrap gap-3 text-sm">
-        {(
-          [
-            ["name", "nama"],
-            ["lateCount", "telat"],
-            ["lateMinutes", "total menit"],
-            ["missingPunch", "kurang presensi"],
-            ["noReason", "tanpa keterangan"],
-          ] as const
-        ).map(([sort, label]) => (
-          <Link
-            key={sort}
-            href={dashboardHref(state, { sort, direction: query.sort === sort && query.direction === "asc" ? "desc" : "asc", page: 1 })}
-            className="underline"
-          >
-            Urutkan {label}
-            {query.sort === sort ? (query.direction === "asc" ? " ↑" : " ↓") : ""}
-          </Link>
-        ))}
-      </div>
       <nav className="flex items-center justify-between text-sm" aria-label="Halaman">
         <span>
           Halaman {data.page} dari {pageCount} ({data.total} data)

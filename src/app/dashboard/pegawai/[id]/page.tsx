@@ -71,53 +71,60 @@ async function EmployeeContent({
 
   return (
     <MasterFrame title={data.employee.name} user={user}>
-      <p className="text-sm text-ink-2">
-        PIN {data.employee.pin} · {data.employee.departmentName ?? "Tanpa departemen"} · {formatCalendarDate(data.period.from)} s.d.{" "}
-        {formatCalendarDate(data.period.to)}
-      </p>
-      <Link href={`/dashboard?from=${data.period.from}&to=${data.period.to}`} className="text-sm underline">
-        Kembali ke dasbor
-      </Link>
-      <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-        <li className="rounded-xl border border-line bg-surface px-4 py-3">
-          <p className="text-xs text-ink-2">Kejadian terlambat</p>
-          <p className="text-xl font-semibold">{data.kpis.lateEvents}</p>
-        </li>
-        <li className="rounded-xl border border-line bg-surface px-4 py-3">
-          <p className="text-xs text-ink-2">Total jam telat</p>
-          <p className="text-xl font-semibold">{formatMinutes(data.kpis.lateMinutes)}</p>
-        </li>
-        <li className="rounded-xl border border-line bg-surface px-4 py-3">
-          <p className="text-xs text-ink-2">Kurang presensi</p>
-          <p className="text-xl font-semibold">{data.kpis.missingPunch}</p>
-        </li>
-      </ul>
-      <section className="flex flex-col gap-3">
-        <h2 className="text-lg font-semibold">Kalender keterlambatan</h2>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-sm text-ink-2">
+          PIN {data.employee.pin} · {data.employee.departmentName ?? "Tanpa departemen"} · {formatCalendarDate(data.period.from)} s.d.{" "}
+          {formatCalendarDate(data.period.to)}
+        </p>
+        <Link href={`/dashboard?from=${data.period.from}&to=${data.period.to}`} className="text-sm font-semibold text-primary">
+          Kembali ke dasbor
+        </Link>
+      </div>
+      <dl className="grid grid-cols-1 overflow-hidden rounded-xl border border-line bg-surface sm:grid-cols-3">
+        {(
+          [
+            ["Kejadian terlambat", String(data.kpis.lateEvents)],
+            ["Total jam telat", formatMinutes(data.kpis.lateMinutes)],
+            ["Kurang presensi", String(data.kpis.missingPunch)],
+          ] as const
+        ).map(([label, value], index) => (
+          <div
+            key={label}
+            className={`border-line px-4 py-4 ${index === 2 ? "border-b-0" : "border-b"} sm:border-b-0 ${index === 2 ? "sm:border-r-0" : "sm:border-r"}`}
+          >
+            <dt className="text-xs leading-5 text-ink-2">{label}</dt>
+            <dd className="text-2xl font-semibold tabular-nums tracking-tight">{value}</dd>
+          </div>
+        ))}
+      </dl>
+      <section className="panel flex flex-col gap-3">
+        <h2 className="font-semibold">Kalender keterlambatan</h2>
         <Heatmap cells={data.heatmap} />
       </section>
       {data.days.length === 0 ? (
-        <p className="rounded-xl border border-dashed border-line px-4 py-8 text-center text-sm text-ink-2">Tidak ada baris absensi pada periode ini.</p>
+        <p className="rounded-xl border border-dashed border-line px-4 py-3 text-center text-sm text-ink-2">Tidak ada baris absensi pada periode ini.</p>
       ) : (
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto rounded-xl border border-line bg-surface">
           <table className="w-full text-left text-sm">
             <thead>
-              <tr className="border-b border-line">
-                <th className="py-2 pr-3 font-medium">Tanggal</th>
-                <th className="py-2 pr-3 font-medium">Masuk</th>
-                <th className="py-2 pr-3 font-medium">Keluar</th>
-                <th className="py-2 pr-3 font-medium">Telat</th>
-                <th className="py-2 font-medium">Keterangan</th>
+              <tr className="border-b border-line bg-surface-2 text-xs text-ink-2">
+                <th className="px-4 py-3 font-medium">Tanggal</th>
+                <th className="px-4 py-3 font-medium">Masuk</th>
+                <th className="px-4 py-3 font-medium">Keluar</th>
+                <th className="px-4 py-3 text-right font-medium">Telat</th>
+                <th className="px-4 py-3 font-medium">Keterangan</th>
               </tr>
             </thead>
             <tbody>
               {data.days.map((day) => (
-                <tr key={day.date} className="border-b border-line">
-                  <td className="py-2 pr-3">{formatCalendarDate(day.date)}</td>
-                  <td className="py-2 pr-3">{clock(day.clockInMin)}</td>
-                  <td className="py-2 pr-3">{clock(day.clockOutMin)}</td>
-                  <td className="py-2 pr-3">{day.lateMin === null ? "—" : formatMinutes(day.lateMin)}</td>
-                  <td className="py-2">{day.note ?? (day.late ? "Terlambat" : "—")}</td>
+                <tr key={day.date} className="border-b border-line last:border-b-0 hover:bg-surface-2">
+                  <td className="px-4 py-(--row-pad)">{formatCalendarDate(day.date)}</td>
+                  <td className="px-4 py-(--row-pad) tabular-nums">{clock(day.clockInMin)}</td>
+                  <td className="px-4 py-(--row-pad) tabular-nums">{clock(day.clockOutMin)}</td>
+                  <td className={`px-4 py-(--row-pad) text-right tabular-nums ${day.lateMin ? "font-semibold" : "text-ink-2"}`}>
+                    {day.lateMin === null ? "—" : formatMinutes(day.lateMin)}
+                  </td>
+                  <td className="px-4 py-(--row-pad)">{day.note ?? (day.late ? "Terlambat" : "—")}</td>
                 </tr>
               ))}
             </tbody>

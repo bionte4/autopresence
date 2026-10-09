@@ -5,6 +5,7 @@ import {
   heatmap,
   isoWeek,
   summarizeEmployees,
+  topLate,
   summarizeKpis,
   trend,
   type DayRow,
@@ -55,6 +56,15 @@ describe("dashboard totals", () => {
       [day("2026-10-02", null, { clockInMin: null, clockOutMin: null, note: "Cuti" })],
     );
     expect(summary?.missingPunch).toBe(0);
+  });
+
+  it("ranks late employees ahead of the table page", () => {
+    const quiet = { id: "quiet", name: "ANDREA RAHMADANISYA", pin: "4370", departmentName: "Operasional" };
+    const [late, none] = summarizeEmployees(
+      [billy, quiet],
+      [day("2026-10-02", 133), day("2026-10-07", 90, { employeeId: "quiet", lateMin: null })],
+    );
+    expect(topLate([none!, late!]).map((row) => row.employeeId)).toEqual(["billy"]);
   });
 
   it("buckets the two October late days into one month and two weeks", () => {

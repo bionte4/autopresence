@@ -92,6 +92,19 @@ export function summarizeKpis(rows: EmployeeSummary[], openAnomalies: number): D
   };
 }
 
+/** Top late employees across the whole period, independent of the table page. */
+export function topLate(rows: EmployeeSummary[], limit = 5): EmployeeSummary[] {
+  return [...rows]
+    .filter((row) => row.lateCount > 0)
+    .sort(
+      (left, right) =>
+        right.lateMinutes - left.lateMinutes ||
+        right.lateCount - left.lateCount ||
+        left.name.localeCompare(right.name, "id"),
+    )
+    .slice(0, limit);
+}
+
 export function sortSummaries(rows: EmployeeSummary[], sort: SortKey, direction: "asc" | "desc"): EmployeeSummary[] {
   const factor = direction === "asc" ? 1 : -1;
   return [...rows].sort((left, right) => {

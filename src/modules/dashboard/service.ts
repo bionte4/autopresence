@@ -9,6 +9,7 @@ import {
   rowNoReason,
   sortSummaries,
   summarizeEmployees,
+  topLate,
   summarizeKpis,
   trend,
   type DashboardKpis,
@@ -37,6 +38,7 @@ export type DashboardDto = {
   comparison: { lateEvents: number; lateMinutes: number; missingPunch: number; noReason: number } | null;
   trend: TrendPoint[];
   heatmap: HeatCell[] | null;
+  ranking: EmployeeSummary[];
   rows: EmployeeSummary[];
   page: number;
   pageSize: number;
@@ -201,6 +203,7 @@ export async function getDashboard(actor: AuthUser, query: DashboardQuery): Prom
         : null,
       trend: trend(rows, query.grain),
       heatmap: single ? heatmap(query.from, query.to, rows.filter((row) => row.employeeId === single.employeeId)) : null,
+      ranking: topLate(summaries),
       rows: sorted.slice((page - 1) * query.pageSize, page * query.pageSize),
       page,
       pageSize: query.pageSize,
