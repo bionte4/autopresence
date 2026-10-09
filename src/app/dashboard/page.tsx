@@ -13,7 +13,7 @@ import { can } from "@/modules/rbac/policy";
 import { parseDashboardQuery } from "@/modules/dashboard/schema";
 import { getDashboard, suggestPeriod } from "@/modules/dashboard/service";
 import { Heatmap } from "./heatmap";
-import { dashboardHref, exportHref, type DashboardLinkState } from "./links";
+import { dashboardHref, exportHref, openAnomalyHref, type DashboardLinkState } from "./links";
 import { TrendChart } from "./trend-chart";
 import { trendAxisLabel } from "./trend-label";
 
@@ -83,14 +83,17 @@ async function DashboardContent({
     grain: query.grain,
   };
   const pageCount = Math.max(1, Math.ceil(data.total / data.pageSize));
+  const summary = "#ringkasan";
+  const sortedSummary = (sort: DashboardLinkState["sort"]) => `${dashboardHref(state, { sort, direction: "desc", page: 1 })}${summary}`;
+  const anomalyHref = can(user, "anomaly.read") ? openAnomalyHref(state) : undefined;
   const kpis = [
-    ["Pegawai", String(data.kpis.employees)],
-    ["Kejadian terlambat", String(data.kpis.lateEvents)],
-    ["Total jam telat", formatMinutes(data.kpis.lateMinutes)],
-    ["Kurang presensi", String(data.kpis.missingPunch)],
-    ["Tanpa keterangan", String(data.kpis.noReason)],
-    ["Anomali terbuka", String(data.kpis.openAnomalies)],
-  ] as const;
+    { label: "Pegawai", value: String(data.kpis.employees), href: data.kpis.employees > 0 ? summary : undefined },
+    { label: "Kejadian terlambat", value: String(data.kpis.lateEvents), href: data.kpis.lateEvents > 0 ? sortedSummary("lateCount") : undefined },
+    { label: "Total jam telat", value: formatMinutes(data.kpis.lateMinutes), href: data.kpis.lateMinutes > 0 ? sortedSummary("lateMinutes") : undefined },
+    { label: "Kurang presensi", value: String(data.kpis.missingPunch), href: data.kpis.missingPunch > 0 ? sortedSummary("missingPunch") : undefined },
+    { label: "Tanpa keterangan", value: String(data.kpis.noReason), href: data.kpis.noReason > 0 ? sortedSummary("noReason") : undefined },
+    { label: "Anomali terbuka", value: String(data.kpis.openAnomalies), href: data.kpis.openAnomalies > 0 ? anomalyHref : undefined },
+  ];
 
   return (
     <MasterFrame title="Dasbor" user={user}>
@@ -183,23 +186,30 @@ async function DashboardContent({
         hash={data.integrity?.sha256}
         action={
           data.kpis.openAnomalies > 0 && can(user, "anomaly.read")
-            ? { href: "/anomalies", label: "Tinjau anomali" }
+            ? { href: anomalyHref ?? "/anomalies", label: "Tinjau anomali" }
             : undefined
         }
       />
 
       <dl className="grid grid-cols-2 overflow-hidden rounded-xl border border-line bg-surface sm:grid-cols-3 lg:grid-cols-6">
-        {kpis.map(([label, value], index) => {
-          const alert = label === "Anomali terbuka" && data.kpis.openAnomalies > 0;
+        {kpis.map((kpi, index) => {
+          const alert = kpi.label === "Anomali terbuka" && data.kpis.openAnomalies > 0;
           const right = index % 2 === 0 ? "border-r" : "border-r-0";
           const bottom = index < 4 ? "border-b" : "border-b-0";
           const smRight = index % 3 === 2 ? "sm:border-r-0" : "sm:border-r";
           const smBottom = index < 3 ? "sm:border-b" : "sm:border-b-0";
           const lgRight = index === 5 ? "lg:border-r-0" : "lg:border-r";
+          const figure = kpi.href ? (
+            <Link href={kpi.href} className="rounded-sm underline-offset-4 outline-none hover:underline focus-visible:underline">
+              {kpi.value}
+            </Link>
+          ) : (
+            kpi.value
+          );
           return (
-            <div key={label} className={`border-line px-4 py-4 ${right} ${bottom} ${smRight} ${smBottom} ${lgRight} lg:border-b-0 ${alert ? "bg-danger-soft" : ""}`}>
-              <dt className="text-xs leading-5 text-ink-2">{label}</dt>
-              <dd className={`text-2xl font-semibold tabular-nums tracking-tight ${alert ? "text-danger" : ""}`}>{value}</dd>
+            <div key={kpi.label} className={`border-line px-4 py-4 ${right} ${bottom} ${smRight} ${smBottom} ${lgRight} lg:border-b-0 ${alert ? "bg-danger-soft" : ""}`}>
+              <dt className="text-xs leading-5 text-ink-2">{kpi.label}</dt>
+              <dd className={`text-2xl font-semibold tabular-nums tracking-tight ${alert ? "text-danger" : ""}`}>{figure}</dd>
             </div>
           );
         })}
@@ -301,7 +311,7 @@ async function DashboardContent({
         </p>
       )}
 
-      <div className="flex flex-wrap items-end justify-between gap-3">
+      <div id="ringkasan" className="flex scroll-mt-24 flex-wrap items-end justify-between gap-3">
         <div>
           <h2 className="text-lg font-semibold">Ringkasan pegawai</h2>
           <p className="text-sm text-ink-2">{data.total} pegawai</p>

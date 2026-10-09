@@ -17,20 +17,36 @@ const listSelect = {
   employee: { select: { name: true, departmentId: true } },
 } as const;
 
+function departmentLimit(scope: DataScope, query: AnomalyListQuery): Prisma.EmployeeWhereInput | undefined {
+  if (scope.kind === "departments" && query.departmentId && !scope.departmentIds.includes(query.departmentId)) {
+    return { departmentId: "__none__" };
+  }
+  if (query.departmentId) return { departmentId: query.departmentId };
+  if (scope.kind === "departments") return { departmentId: { in: scope.departmentIds } };
+  return undefined;
+}
+
 function scopedWhere(scope: DataScope, query: AnomalyListQuery): Prisma.AnomalyWhereInput {
+  const employee = departmentLimit(scope, query);
   return {
-    ...(scope.kind === "departments" ? { employee: { departmentId: { in: scope.departmentIds } } } : {}),
+    ...(employee ? { employee } : {}),
     ...(query.status ? { status: query.status as AnomalyStatus } : {}),
     ...(query.severity ? { severity: query.severity as Severity } : {}),
     ...(query.type ? { type: query.type as AnomalyType } : {}),
     ...(query.employeeId ? { employeeId: query.employeeId } : {}),
     ...(query.q ? { message: { contains: query.q, mode: "insensitive" } } : {}),
+    // Undated findings are counted on the dashboard for the open period, so the list includes them too.
     ...(query.from || query.to
       ? {
-          date: {
-            ...(query.from ? { gte: dateOnly(query.from) } : {}),
-            ...(query.to ? { lte: dateOnly(query.to) } : {}),
-          },
+          OR: [
+            { date: null },
+            {
+              date: {
+                ...(query.from ? { gte: dateOnly(query.from) } : {}),
+                ...(query.to ? { lte: dateOnly(query.to) } : {}),
+              },
+            },
+          ],
         }
       : {}),
   };

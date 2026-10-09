@@ -26,6 +26,7 @@ function pageHref(query: AnomalyListQuery, patch: Partial<AnomalyListQuery>): st
   if (next.severity) params.set("severity", next.severity);
   if (next.type) params.set("type", next.type);
   if (next.employeeId) params.set("employeeId", next.employeeId);
+  if (next.departmentId) params.set("departmentId", next.departmentId);
   if (next.from) params.set("from", next.from);
   if (next.to) params.set("to", next.to);
   params.set("sort", next.sort);
@@ -138,6 +139,7 @@ async function AnomaliesContent({
           Sampai
           <input type="date" name="to" defaultValue={query.to ?? ""} className="field font-normal" />
         </label>
+        {query.departmentId ? <input type="hidden" name="departmentId" value={query.departmentId} /> : null}
         <button type="submit" className="btn justify-self-start self-end">Terapkan</button>
       </form>
       {data.total === 0 ? (

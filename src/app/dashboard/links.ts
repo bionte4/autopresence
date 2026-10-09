@@ -29,6 +29,16 @@ export function dashboardHref(state: DashboardLinkState, patch: Partial<Dashboar
   return `/dashboard?${params.toString()}`;
 }
 
+export function openAnomalyHref(state: Pick<DashboardLinkState, "from" | "to" | "departmentId" | "employeeId">): string {
+  const params = new URLSearchParams();
+  params.set("status", "OPEN");
+  params.set("from", state.from);
+  params.set("to", state.to);
+  if (state.departmentId) params.set("departmentId", state.departmentId);
+  if (state.employeeId) params.set("employeeId", state.employeeId);
+  return `/anomalies?${params.toString()}`;
+}
+
 export function exportHref(state: DashboardLinkState): string {
   const page = dashboardHref(state).slice("/dashboard".length);
   return `/api/attendance/export${page}`;

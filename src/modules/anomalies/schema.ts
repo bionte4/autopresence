@@ -24,6 +24,7 @@ export type AnomalyListQuery = {
     | "UNKNOWN_EMPLOYEE"
     | "UNKNOWN_NOTE";
   employeeId?: string;
+  departmentId?: string;
   from?: string;
   to?: string;
 };
@@ -38,6 +39,7 @@ const anomalyListSchema = z.object({
   severity: z.string().optional(),
   type: z.string().optional(),
   employeeId: z.string().optional(),
+  departmentId: z.string().optional(),
   from: z.string().optional(),
   to: z.string().optional(),
 });
@@ -77,12 +79,14 @@ export function parseAnomalyListQuery(params: Record<string, string | undefined>
     severity: params.severity,
     type: params.type,
     employeeId: params.employeeId,
+    departmentId: params.departmentId,
     from: params.from,
     to: params.to,
   });
   const from = parsed.from && /^\d{4}-\d{2}-\d{2}$/.test(parsed.from) ? parsed.from : undefined;
   const to = parsed.to && /^\d{4}-\d{2}-\d{2}$/.test(parsed.to) ? parsed.to : undefined;
   const employeeId = parsed.employeeId?.trim() || undefined;
+  const departmentId = parsed.departmentId?.trim() || undefined;
   return {
     page: parsed.page,
     pageSize: parsed.pageSize,
@@ -93,6 +97,7 @@ export function parseAnomalyListQuery(params: Record<string, string | undefined>
     severity: oneOf(parsed.severity, SEVERITIES),
     type: oneOf(parsed.type, TYPES),
     employeeId,
+    departmentId,
     from,
     to,
   };
