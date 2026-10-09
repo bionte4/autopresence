@@ -1,9 +1,3 @@
-# UI/UX DESIGN PROMPT — Absensi Monitor
-
-> **Cara pakai**
-> - **Cursor:** taruh file ini di root repo bersama `MASTER_PROMPT.md` dan `.cursorrules`. Tempel **PROMPT A** ke Agent setelah M1 (Auth + RBAC) selesai, atau sebelum M5 (Dashboard) paling lambat.
-> - **Figma AI / v0 / Stitch / Lovable:** tempel **PROMPT B** (versi ringkas), lalu lampirkan bagian 3–6 sebagai konteks.
-> - Minta AI **membuat rencana desain dulu** (token + wireframe), baru kode. Tinjau rencana itu sebelum lanjut.
 
 ---
 
