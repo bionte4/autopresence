@@ -58,6 +58,7 @@ async function CorrectionsContent({
   if (!result.ok) forbidden();
   const data = result.data;
   const pageCount = Math.max(1, Math.ceil(data.total / data.pageSize));
+  const defaultRecordId = firstParam(raw.recordId);
 
   return (
     <MasterFrame title="Koreksi kehadiran" user={user}>
@@ -65,7 +66,7 @@ async function CorrectionsContent({
         <section className="flex flex-col gap-3">
           <h2 className="text-lg font-semibold">Ajukan koreksi</h2>
           <p className="text-sm text-ink-2">Kosongkan jam jika tidak diubah. Isi minimal satu nilai baru dan alasan.</p>
-          <CorrectionForm records={data.records} />
+          <CorrectionForm records={data.records} defaultRecordId={defaultRecordId} />
         </section>
       ) : null}
       <form className="panel grid items-end gap-3 sm:grid-cols-3" action="/corrections">

@@ -20,10 +20,18 @@ function minutesOrSkip(value: FormDataEntryValue | null): number | undefined {
   return hours * 60 + minutes;
 }
 
-export function CorrectionForm({ records }: { records: RecordOption[] }) {
+export function CorrectionForm({
+  records,
+  defaultRecordId,
+}: {
+  records: RecordOption[];
+  defaultRecordId?: string;
+}) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const selected =
+    defaultRecordId && records.some((row) => row.id === defaultRecordId) ? defaultRecordId : (records[0]?.id ?? "");
 
   if (records.length === 0) {
     return <p className="text-sm text-ink-2">Belum ada baris kehadiran yang bisa dikoreksi.</p>;
@@ -66,7 +74,7 @@ export function CorrectionForm({ records }: { records: RecordOption[] }) {
     >
       <label className="flex flex-col gap-1 text-xs text-ink-2 sm:col-span-2">
         Baris kehadiran
-        <select name="recordId" required className="field font-normal">
+        <select name="recordId" required defaultValue={selected} className="field font-normal">
           {records.map((row) => (
             <option key={row.id} value={row.id}>
               {row.employeeName} · {formatCalendarDate(row.date)} · masuk {row.clockInMin === null ? "—" : formatMinutes(row.clockInMin)} · keluar {row.clockOutMin === null ? "—" : formatMinutes(row.clockOutMin)}

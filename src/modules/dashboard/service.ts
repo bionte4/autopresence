@@ -64,6 +64,7 @@ export type EmployeeDashboardDto = {
   period: { from: string; to: string };
   kpis: DashboardKpis;
   days: Array<{
+    id: string;
     date: string;
     clockInMin: number | null;
     clockOutMin: number | null;
@@ -103,6 +104,7 @@ function toRef(employee: {
 
 function toDayRows(
   records: Array<{
+    id?: string;
     employeeId: string;
     date: Date;
     lateMin: number | null;
@@ -269,6 +271,7 @@ export async function getEmployeeDashboard(
   const openAnomalies = await countOpenAnomalies([employee.id], period.from, period.to, false);
   const anomalyDates = can(actor, "anomaly.read") ? await findAnomalyDates(employee.id, period.from, period.to) : [];
   const ref = toRef(employee);
+  const dayMeta = new Map(records.map((record) => [isoDate(record.date), record.id]));
   return {
     ok: true,
     data: {
@@ -279,6 +282,7 @@ export async function getEmployeeDashboard(
         .slice()
         .sort((left, right) => left.date.localeCompare(right.date))
         .map((row) => ({
+          id: dayMeta.get(row.date) ?? "",
           date: row.date,
           clockInMin: row.clockInMin,
           clockOutMin: row.clockOutMin,

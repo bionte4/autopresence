@@ -9,6 +9,41 @@ function clock(value: number | null): string {
   return value === null ? "—" : formatMinutes(value);
 }
 
+function employeeHref(employeeId: string, from: string, to: string, focus?: string): string {
+  const params = new URLSearchParams({ from, to });
+  if (focus) params.set("focus", focus);
+  const hash = focus ? `#hari-${focus}` : "";
+  return `/dashboard/pegawai/${employeeId}?${params.toString()}${hash}`;
+}
+
+function timesheetPreviewHref(employeeId: string, from: string, to: string): string {
+  const params = new URLSearchParams({
+    report: "timesheet",
+    from,
+    to,
+    employeeId,
+  });
+  return `/reports?${params.toString()}`;
+}
+
+function NameLink({
+  employeeId,
+  name,
+  from,
+  to,
+}: {
+  employeeId: string;
+  name: string;
+  from: string;
+  to: string;
+}) {
+  return (
+    <Link href={employeeHref(employeeId, from, to)} className="font-semibold text-ink underline-offset-2 hover:underline">
+      {name}
+    </Link>
+  );
+}
+
 export function AttendancePreview({
   data,
   exportHref,
@@ -24,7 +59,8 @@ export function AttendancePreview({
             Pratinjau rekap kehadiran
           </h2>
           <p className="text-xs text-ink-2">
-            Periode {formatCalendarDate(data.from)} s.d. {formatCalendarDate(data.to)} · {data.rows.length} pegawai
+            Periode {formatCalendarDate(data.from)} s.d. {formatCalendarDate(data.to)} · {data.rows.length} pegawai.
+            Klik nama untuk detail; klik angka untuk timesheet.
           </p>
         </div>
         <Link className="btn btn-primary" href={exportHref}>
@@ -50,22 +86,53 @@ export function AttendancePreview({
               </tr>
             </thead>
             <tbody>
-              {data.rows.map((row) => (
-                <tr key={row.employeeId} className="border-b border-line/60">
-                  <td className="px-2 py-2">{row.name}</td>
-                  {data.includePin ? <td className="px-2 py-2 text-ink-2">{row.pin}</td> : null}
-                  <td className="px-2 py-2 text-ink-2">{row.departmentName ?? "—"}</td>
-                  <td className="px-2 py-2">{row.lateCount}</td>
-                  <td className="px-2 py-2">{formatMinutes(row.lateMinutes)}</td>
-                  <td className="px-2 py-2">{row.missingPunch}</td>
-                  <td className="px-2 py-2">{row.noReason}</td>
-                </tr>
-              ))}
+              {data.rows.map((row) => {
+                const sheet = timesheetPreviewHref(row.employeeId, data.from, data.to);
+                return (
+                  <tr key={row.employeeId} className="border-b border-line/60">
+                    <td className="px-2 py-2">
+                      <NameLink employeeId={row.employeeId} name={row.name} from={data.from} to={data.to} />
+                    </td>
+                    {data.includePin ? <td className="px-2 py-2 text-ink-2">{row.pin}</td> : null}
+                    <td className="px-2 py-2 text-ink-2">{row.departmentName ?? "—"}</td>
+                    <td className="px-2 py-2">
+                      <MetricLink href={sheet} value={row.lateCount} />
+                    </td>
+                    <td className="px-2 py-2">
+                      <MetricLink href={sheet} value={formatMinutes(row.lateMinutes)} active={row.lateMinutes > 0} />
+                    </td>
+                    <td className="px-2 py-2">
+                      <MetricLink href={sheet} value={row.missingPunch} />
+                    </td>
+                    <td className="px-2 py-2">
+                      <MetricLink href={sheet} value={row.noReason} />
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
       )}
     </section>
+  );
+}
+
+function MetricLink({
+  href,
+  value,
+  active,
+}: {
+  href: string;
+  value: string | number;
+  active?: boolean;
+}) {
+  const on = active ?? (typeof value === "number" ? value > 0 : value !== "00:00");
+  if (!on) return <span>{value}</span>;
+  return (
+    <Link href={href} className="underline-offset-2 hover:underline">
+      {value}
+    </Link>
   );
 }
 
@@ -88,7 +155,8 @@ export function TimesheetPreview({
             Pratinjau timesheet
           </h2>
           <p className="text-xs text-ink-2">
-            {data.employee.name} · {formatCalendarDate(from)} s.d. {formatCalendarDate(to)}
+            <NameLink employeeId={data.employee.id} name={data.employee.name} from={from} to={to} /> ·{" "}
+            {formatCalendarDate(from)} s.d. {formatCalendarDate(to)}. Klik tanggal untuk detail hari itu.
           </p>
         </div>
         <Link className="btn btn-primary" href={exportHref}>
@@ -115,7 +183,14 @@ export function TimesheetPreview({
             <tbody>
               {data.days.map((day) => (
                 <tr key={day.date} className="border-b border-line/60">
-                  <td className="px-2 py-2">{formatCalendarDate(day.date)}</td>
+                  <td className="px-2 py-2">
+                    <Link
+                      href={employeeHref(data.employee.id, from, to, day.date)}
+                      className="font-semibold underline-offset-2 hover:underline"
+                    >
+                      {formatCalendarDate(day.date)}
+                    </Link>
+                  </td>
                   <td className="px-2 py-2">{clock(day.clockInMin)}</td>
                   <td className="px-2 py-2">{clock(day.clockOutMin)}</td>
                   <td className="px-2 py-2">{day.late ? formatMinutes(day.lateMin ?? 0) : "—"}</td>
@@ -138,6 +213,8 @@ export function SoftLaborPreview({ report, query }: { report: SoftLaborReportDto
   const weeksOver = report.weeks.filter((row) => row.overLimit);
   const otGaps = report.overtime.filter((row) => row.gapMin > 0).slice(0, 40);
   const exportHref = exportHrefFor("soft-labor", query);
+  const from = report.from;
+  const to = report.to;
 
   return (
     <section className="panel flex flex-col gap-4" aria-labelledby="soft-preview-title">
@@ -147,8 +224,8 @@ export function SoftLaborPreview({ report, query }: { report: SoftLaborReportDto
             Pratinjau laporan lembur
           </h2>
           <p className="text-xs text-ink-2">
-            Periode {formatCalendarDate(report.from)} s.d. {formatCalendarDate(report.to)}.{" "}
-            {flagged.length} dari {report.summaries.length} pegawai punya temuan untuk ditinjau.
+            Periode {formatCalendarDate(from)} s.d. {formatCalendarDate(to)}. {flagged.length} dari{" "}
+            {report.summaries.length} pegawai punya temuan untuk ditinjau. Klik nama atau tanggal untuk detail.
           </p>
         </div>
         <Link className="btn btn-primary" href={exportHref}>
@@ -176,14 +253,26 @@ export function SoftLaborPreview({ report, query }: { report: SoftLaborReportDto
             <tbody>
               {(flagged.length > 0 ? flagged : report.summaries).map((row) => (
                 <tr key={row.employeeId} className="border-b border-line/60 align-top">
-                  <td className="px-2 py-2">{row.name}</td>
-                  <td className="px-2 py-2 text-ink-2">{row.departmentName ?? "—"}</td>
-                  <td className="px-2 py-2">{row.weeksOverLimit}</td>
                   <td className="px-2 py-2">
-                    {row.maxWorkStreak}
-                    {row.restFlag ? " · tinjau" : ""}
+                    <NameLink employeeId={row.employeeId} name={row.name} from={from} to={to} />
                   </td>
-                  <td className="px-2 py-2">{row.overtimeWithoutApprovalDays}</td>
+                  <td className="px-2 py-2 text-ink-2">{row.departmentName ?? "—"}</td>
+                  <td className="px-2 py-2">
+                    <MetricLink href={timesheetPreviewHref(row.employeeId, from, to)} value={row.weeksOverLimit} />
+                  </td>
+                  <td className="px-2 py-2">
+                    <MetricLink
+                      href={employeeHref(row.employeeId, from, to)}
+                      value={`${row.maxWorkStreak}${row.restFlag ? " · tinjau" : ""}`}
+                      active={row.maxWorkStreak > 0}
+                    />
+                  </td>
+                  <td className="px-2 py-2">
+                    <MetricLink
+                      href={timesheetPreviewHref(row.employeeId, from, to)}
+                      value={row.overtimeWithoutApprovalDays}
+                    />
+                  </td>
                   <td className="px-2 py-2 text-xs text-ink-2">{row.coachingNote}</td>
                 </tr>
               ))}
@@ -211,9 +300,18 @@ export function SoftLaborPreview({ report, query }: { report: SoftLaborReportDto
             <tbody>
               {weeksOver.map((row) => (
                 <tr key={`${row.employeeId}-${row.week}`} className="border-b border-line/60">
-                  <td className="px-2 py-2">{row.name}</td>
+                  <td className="px-2 py-2">
+                    <NameLink employeeId={row.employeeId} name={row.name} from={from} to={to} />
+                  </td>
                   <td className="px-2 py-2">{row.week}</td>
-                  <td className="px-2 py-2">{formatMinutes(row.workedMin)}</td>
+                  <td className="px-2 py-2">
+                    <Link
+                      href={timesheetPreviewHref(row.employeeId, from, to)}
+                      className="underline-offset-2 hover:underline"
+                    >
+                      {formatMinutes(row.workedMin)}
+                    </Link>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -237,8 +335,17 @@ export function SoftLaborPreview({ report, query }: { report: SoftLaborReportDto
             <tbody>
               {otGaps.map((row) => (
                 <tr key={`${row.employeeId}-${row.date}`} className="border-b border-line/60">
-                  <td className="px-2 py-2">{row.name}</td>
-                  <td className="px-2 py-2">{formatCalendarDate(row.date)}</td>
+                  <td className="px-2 py-2">
+                    <NameLink employeeId={row.employeeId} name={row.name} from={from} to={to} />
+                  </td>
+                  <td className="px-2 py-2">
+                    <Link
+                      href={employeeHref(row.employeeId, from, to, row.date)}
+                      className="underline-offset-2 hover:underline"
+                    >
+                      {formatCalendarDate(row.date)}
+                    </Link>
+                  </td>
                   <td className="px-2 py-2">{formatMinutes(row.observedMin)}</td>
                   <td className="px-2 py-2">{formatMinutes(row.approvedMin)}</td>
                   <td className="px-2 py-2">{formatMinutes(row.gapMin)}</td>

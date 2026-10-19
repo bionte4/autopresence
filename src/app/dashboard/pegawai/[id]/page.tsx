@@ -6,8 +6,9 @@ import { ZodError } from "zod";
 import { MasterFrame } from "@/app/master/master-frame";
 import { formatCalendarDate, formatMinutes } from "@/lib/format";
 import { getCurrentUser } from "@/modules/auth/current-user";
+import { canProposeCorrection } from "@/modules/corrections/service";
 import { firstParam } from "@/modules/master/query";
-import { can } from "@/modules/rbac/policy";
+import { can, isCustomerViewer } from "@/modules/rbac/policy";
 import { parseDashboardQuery } from "@/modules/dashboard/schema";
 import { getEmployeeDashboard, suggestPeriod } from "@/modules/dashboard/service";
 import { Heatmap } from "../../heatmap";
@@ -68,6 +69,16 @@ async function EmployeeContent({
     forbidden();
   }
   const data = result.data;
+  const focus = firstParam(raw.focus);
+  const selectedDate =
+    focus && data.days.some((day) => day.date === focus)
+      ? focus
+      : period.from === period.to
+        ? period.from
+        : undefined;
+  const allowCorrection = !isCustomerViewer(user) && canProposeCorrection(user);
+  const dayHref = (date: string) =>
+    `/dashboard/pegawai/${id}?from=${data.period.from}&to=${data.period.to}&focus=${date}#hari-${date}`;
 
   return (
     <MasterFrame title={data.employee.name} user={user}>
@@ -76,10 +87,16 @@ async function EmployeeContent({
           {user.role === "CUSTOMER" ? "" : `PIN ${data.employee.pin} · `}
           {data.employee.departmentName ?? "Tanpa departemen"} · {formatCalendarDate(data.period.from)} s.d.{" "}
           {formatCalendarDate(data.period.to)}
+          {selectedDate ? ` · fokusilih ${formatCalendarDate(selectedDate)}` : ""}
         </p>
-        <Link href={`/dashboard?from=${data.period.from}&to=${data.period.to}`} className="text-sm font-semibold text-primary">
-          Kembali ke dasbor
-        </Link>
+        <div className="flex flex-wrap gap-3">
+          {allowCorrection && selectedDate ? (
+            <CorrectionDayLink days={data.days} selectedDate={selectedDate} />
+          ) : null}
+          <Link href={`/dashboard?from=${data.period.from}&to=${data.period.to}`} className="text-sm font-semibold text-primary">
+            Kembali ke dasbor
+          </Link>
+        </div>
       </div>
       <dl className="grid grid-cols-1 overflow-hidden rounded-xl border border-line bg-surface sm:grid-cols-3">
         {(
@@ -103,18 +120,24 @@ async function EmployeeContent({
         <Heatmap
           cells={data.heatmap}
           anomalyDates={data.anomalyDates}
+          selectedDate={selectedDate}
+          dayHref={dayHref}
           anomalyHref={
             can(user, "anomaly.read")
               ? (date) => `/anomalies?employeeId=${id}&from=${date}&to=${date}&dated=1`
               : undefined
           }
         />
-        {data.anomalyDates.length > 0 ? (
-          <p className="text-xs text-ink-2">Titik menandai hari yang punya anomali. Klik hari itu untuk membuka daftarnya.</p>
-        ) : null}
+        <p className="text-xs text-ink-2">
+          Cincin menandai hari yang dipilih.{" "}
+          {data.anomalyDates.length > 0 ? "Titik menandai hari yang punya anomali. " : ""}
+          Klik hari untuk memilih dan membuka baris di tabel.
+        </p>
       </section>
       {data.days.length === 0 ? (
-        <p className="rounded-xl border border-dashed border-line px-4 py-3 text-center text-sm text-ink-2">Tidak ada baris absensi pada periode ini.</p>
+        <p className="rounded-xl border border-dashed border-line px-4 py-3 text-center text-sm text-ink-2">
+          Tidak ada baris absensi pada periode ini.
+        </p>
       ) : (
         <div className="overflow-x-auto rounded-xl border border-line bg-surface">
           <table className="w-full text-left text-sm">
@@ -125,24 +148,63 @@ async function EmployeeContent({
                 <th className="px-4 py-3 font-medium">Keluar</th>
                 <th className="px-4 py-3 text-right font-medium">Telat</th>
                 <th className="px-4 py-3 font-medium">Keterangan</th>
+                {allowCorrection ? <th className="px-4 py-3 font-medium">Aksi</th> : null}
               </tr>
             </thead>
             <tbody>
-              {data.days.map((day) => (
-                <tr key={day.date} className="border-b border-line last:border-b-0 hover:bg-surface-2">
-                  <td className="px-4 py-(--row-pad)">{formatCalendarDate(day.date)}</td>
-                  <td className="px-4 py-(--row-pad) tabular-nums">{clock(day.clockInMin)}</td>
-                  <td className="px-4 py-(--row-pad) tabular-nums">{clock(day.clockOutMin)}</td>
-                  <td className={`px-4 py-(--row-pad) text-right tabular-nums ${day.lateMin ? "font-semibold" : "text-ink-2"}`}>
-                    {day.lateMin === null ? "—" : formatMinutes(day.lateMin)}
-                  </td>
-                  <td className="px-4 py-(--row-pad)">{day.note ?? (day.late ? "Terlambat" : "—")}</td>
-                </tr>
-              ))}
+              {data.days.map((day) => {
+                const selected = selectedDate === day.date;
+                return (
+                  <tr
+                    key={day.date}
+                    id={`hari-${day.date}`}
+                    className={`scroll-mt-24 border-b border-line last:border-b-0 ${selected ? "bg-primary/10 ring-1 ring-inset ring-primary/40" : "hover:bg-surface-2"}`}
+                  >
+                    <td className="px-4 py-(--row-pad)">
+                      <Link href={dayHref(day.date)} className={selected ? "font-semibold text-primary" : "font-semibold hover:underline"}>
+                        {formatCalendarDate(day.date)}
+                      </Link>
+                    </td>
+                    <td className="px-4 py-(--row-pad) tabular-nums">{clock(day.clockInMin)}</td>
+                    <td className="px-4 py-(--row-pad) tabular-nums">{clock(day.clockOutMin)}</td>
+                    <td className={`px-4 py-(--row-pad) text-right tabular-nums ${day.lateMin ? "font-semibold" : "text-ink-2"}`}>
+                      {day.lateMin === null ? "—" : formatMinutes(day.lateMin)}
+                    </td>
+                    <td className="px-4 py-(--row-pad)">{day.note ?? (day.late ? "Terlambat" : "—")}</td>
+                    {allowCorrection ? (
+                      <td className="px-4 py-(--row-pad)">
+                        {day.id ? (
+                          <Link href={`/corrections?recordId=${day.id}`} className="text-sm font-semibold text-primary hover:underline">
+                            Koreksi
+                          </Link>
+                        ) : (
+                          "—"
+                        )}
+                      </td>
+                    ) : null}
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
       )}
     </MasterFrame>
+  );
+}
+
+function CorrectionDayLink({
+  days,
+  selectedDate,
+}: {
+  days: Array<{ id: string; date: string }>;
+  selectedDate: string;
+}) {
+  const day = days.find((row) => row.date === selectedDate);
+  if (!day?.id) return null;
+  return (
+    <Link href={`/corrections?recordId=${day.id}`} className="text-sm font-semibold text-primary">
+      Ajukan koreksi hari ini
+    </Link>
   );
 }

@@ -72,6 +72,7 @@ export async function findAttendanceInRange(employeeIds: string[], from: string,
       date: { gte: dateOnly(from), lte: dateOnly(to) },
     },
     select: {
+      id: true,
       employeeId: true,
       date: true,
       lateMin: true,

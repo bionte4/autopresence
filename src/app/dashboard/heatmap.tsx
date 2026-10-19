@@ -18,10 +18,16 @@ function mondayIndex(iso: string): number {
 export function Heatmap({
   cells,
   anomalyDates = [],
+  selectedDate,
+  dayHref,
   anomalyHref,
 }: {
   cells: Array<{ date: string; lateMinutes: number }>;
   anomalyDates?: readonly string[];
+  /** Day that should look selected (ring), e.g. after opening from a report preview. */
+  selectedDate?: string;
+  /** Makes every day clickable (selection / scroll). */
+  dayHref?: (date: string) => string;
   anomalyHref?: (date: string) => string;
 }) {
   if (cells.length === 0) return null;
@@ -40,27 +46,28 @@ export function Heatmap({
         ))}
         {cells.map((cell) => {
           const hasAnomaly = marked.has(cell.date);
-          const label = `${formatCalendarDate(cell.date)}, telat ${formatMinutes(cell.lateMinutes)}${hasAnomaly ? ", ada anomali" : ""}`;
-          const className = `relative flex h-9 items-center justify-center rounded text-[10px] ${tone(cell.lateMinutes)}`;
+          const selected = selectedDate === cell.date;
+          const label = `${formatCalendarDate(cell.date)}, telat ${formatMinutes(cell.lateMinutes)}${hasAnomaly ? ", ada anomali" : ""}${selected ? ", dipilih" : ""}`;
+          const className = [
+            "relative flex h-9 items-center justify-center rounded text-[10px] outline-none focus-visible:ring-2 focus-visible:ring-primary",
+            tone(cell.lateMinutes),
+            selected ? "ring-2 ring-primary ring-offset-1 ring-offset-surface" : "",
+          ]
+            .filter(Boolean)
+            .join(" ");
           const day = cell.date.slice(8);
           const dot = hasAnomaly ? <span className="absolute top-1 right-1 size-1.5 rounded-full bg-primary" /> : null;
-          const href = hasAnomaly ? anomalyHref?.(cell.date) : undefined;
+          const href = dayHref?.(cell.date) ?? (hasAnomaly ? anomalyHref?.(cell.date) : undefined);
           if (href) {
             return (
-              <Link
-                key={cell.date}
-                href={href}
-                aria-label={label}
-                title={label}
-                className={`${className} outline-none focus-visible:ring-2 focus-visible:ring-primary`}
-              >
+              <Link key={cell.date} href={href} aria-label={label} title={label} aria-current={selected ? "date" : undefined} className={className}>
                 {dot}
                 {day}
               </Link>
             );
           }
           return (
-            <div key={cell.date} role="img" aria-label={label} title={label} className={className}>
+            <div key={cell.date} role="img" aria-label={label} title={label} aria-current={selected ? "date" : undefined} className={className}>
               {dot}
               {day}
             </div>
