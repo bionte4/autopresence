@@ -46,3 +46,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# generated process diagram for local PowerPoint copy
+/docs/alur-proses-absensi.pptx
