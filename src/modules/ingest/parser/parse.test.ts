@@ -44,6 +44,10 @@ describe("calendar helpers", () => {
     expect(parsePeriod(": 7 Okt 2026")).toEqual({ start: "2026-10-07", end: "2026-10-07" });
     expect(parsePeriod("1 Okt 2026 - 7 Okt 2026")).toEqual({ start: "2026-10-01", end: "2026-10-07" });
     expect(parsePeriod("10 Sep - 9 Okt 2026")).toEqual({ start: "2026-09-10", end: "2026-10-09" });
+    expect(parsePeriod(": 1 - 16 Okt 2026")).toEqual({ start: "2026-10-01", end: "2026-10-16" });
+    expect(parsePeriod("1 - 30 Sep 2026")).toEqual({ start: "2026-09-01", end: "2026-09-30" });
+    expect(parsePeriod("12 - 16 Okt 2026")).toEqual({ start: "2026-10-12", end: "2026-10-16" });
+    expect(parsePeriod("28 - 5 Okt 2026")).toBeNull();
     expect(parsePeriod("tanpa tanggal")).toBeNull();
     expect(inclusiveDays("2026-09-10", "2026-10-09")).toBe(30);
   });

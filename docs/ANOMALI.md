@@ -16,7 +16,7 @@ Tingkat: **Rendah**, **Sedang**, **Tinggi**, **Kritis**. Manajer departemen menu
 | Kurang presensi | Rendah | Keterangan hari itu persis **kurang presensi masuk** (jam masuk kosong) atau **kurang presensi keluar** (jam pulang kosong). Lihat bagian di bawah |
 | Terlambat berulang | Sedang | Telat tercatat beberapa kali dalam satu periode. Ambang bawaan tiga kali, dihitung dari kolom telat |
 | Tanpa keterangan | Sedang | Hari kerja yang keterangannya persis **tanpa keterangan** |
-| Format tidak dikenal | Tinggi | Tata letak bukan Laporan Per Atribut, atau periode bukan rentang `7 Okt - 7 Okt 2026`. Satu tanggal seperti `7 Okt 2026` menolak seluruh berkas. Nama dan PIN yang sudah terisi tidak menyelamatkan unggahan |
+| Format tidak dikenal | Tinggi | Tata letak bukan Laporan Per Atribut, atau baris Periode tidak dikenali. Bentuk yang diterima: `7 Okt 2026`, `10 Sep - 9 Okt 2026`, `1 Okt 2026 - 7 Okt 2026`, dan rentang sebulan `1 - 16 Okt 2026`. Nama dan PIN yang sudah terisi tidak menyelamatkan unggahan |
 | Jenis periode tidak sesuai | Rendah | Panjang periode berkas tidak muat pada jenis yang dipilih saat unggah |
 | Metadata mencurigakan | Sedang | Pembuat dan pengubah berbeda, aplikasi bukan sumber asli, atau berkas diubah lebih dari sehari setelah dibuat |
 | PIN tidak terdaftar | Sedang | PIN belum ada di data pegawai dan tidak bisa dibuat karena jadwal bawaan tidak ada |

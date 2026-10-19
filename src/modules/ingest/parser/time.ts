@@ -66,7 +66,8 @@ function boundedPeriod(start: string | null, end: string | null): { start: strin
 
 /**
  * Daily exports print a single date (`7 Okt 2026`). Weekly/monthly print a range,
- * sometimes with a year on both sides. Guessing unknown layouts is not allowed.
+ * sometimes with a year on both sides. Same-month exports often omit the left month
+ * (`1 - 16 Okt 2026`). Guessing other layouts is not allowed.
  */
 export function parsePeriod(raw: string): { start: string; end: string } | null {
   const value = raw.trim().replace(/^:\s*/, "");
@@ -90,6 +91,17 @@ export function parsePeriod(raw: string): { start: string; end: string } | null 
     return boundedPeriod(
       calendarDate(startYear, startMonth, Number(range[1])),
       calendarDate(endYear, endMonth, Number(range[3])),
+    );
+  }
+  // Machine exports for one month: "1 - 16 Okt 2026" (month only written on the end).
+  const sameMonth = /^(\d{1,2})\s+-\s+(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})$/.exec(value);
+  if (sameMonth) {
+    const month = monthNumber(sameMonth[3]);
+    if (!month) return null;
+    const year = Number(sameMonth[4]);
+    return boundedPeriod(
+      calendarDate(year, month, Number(sameMonth[1])),
+      calendarDate(year, month, Number(sameMonth[2])),
     );
   }
   const single = /^(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})$/.exec(value);
