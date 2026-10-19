@@ -295,10 +295,17 @@ export async function getEmployeeDashboard(
   };
 }
 
-export async function exportAttendanceWorkbook(
+export type AttendancePreviewDto = {
+  from: string;
+  to: string;
+  rows: EmployeeSummary[];
+  includePin: boolean;
+};
+
+async function loadAttendanceExportRows(
   actor: AuthUser,
   query: DashboardQuery,
-): Promise<ServiceResult<{ filename: string; body: Buffer }>> {
+): Promise<ServiceResult<AttendancePreviewDto>> {
   if (!can(actor, "attendance.read")) return denied();
   const decision = decideScope(actor, query);
   if (!decision.ok) return decision.error;
@@ -308,12 +315,35 @@ export async function exportAttendanceWorkbook(
     query.to,
     false,
   );
-  const sorted = sortSummaries(summaries, query.sort, query.direction);
+  return {
+    ok: true,
+    data: {
+      from: query.from,
+      to: query.to,
+      rows: sortSummaries(summaries, query.sort, query.direction),
+      includePin: !isCustomerViewer(actor),
+    },
+  };
+}
+
+export async function previewAttendance(
+  actor: AuthUser,
+  query: DashboardQuery,
+): Promise<ServiceResult<AttendancePreviewDto>> {
+  return loadAttendanceExportRows(actor, query);
+}
+
+export async function exportAttendanceWorkbook(
+  actor: AuthUser,
+  query: DashboardQuery,
+): Promise<ServiceResult<{ filename: string; body: Buffer }>> {
+  const loaded = await loadAttendanceExportRows(actor, query);
+  if (!loaded.ok) return loaded;
   return {
     ok: true,
     data: {
       filename: `kehadiran-${query.from}-${query.to}.xlsx`,
-      body: attendanceWorkbook(sorted, { includePin: !isCustomerViewer(actor) }),
+      body: attendanceWorkbook(loaded.data.rows, { includePin: loaded.data.includePin }),
     },
   };
 }
